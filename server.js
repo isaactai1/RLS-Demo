@@ -19,7 +19,16 @@ const NOTION_DATA_SOURCE_ID = toNotionUuid(
 const NOTION_DEMO_URL =
   process.env.NOTION_DEMO_URL ||
   'https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7';
+const ADHD_DATA_SOURCE_ID = toNotionUuid(
+  process.env.ADHD_DATA_SOURCE_ID || '43f2ce3e-5022-4549-9c59-1b4524bf5ea5'
+);
+const ADHD_DEMO_URL =
+  process.env.ADHD_DEMO_URL ||
+  'https://www.notion.so/77e155aa30b94b5a9f28e9dc56448e63';
 const NOTION_API_VERSION = '2025-09-03';
+
+let adhdPatientCache = { at: 0, rows: [] };
+const ADHD_CACHE_MS = 60_000;
 
 function toNotionUuid(id) {
   const s = String(id).replace(/-/g, '');
@@ -52,8 +61,174 @@ app.get('/api/health', (_req, res) => {
     notionConfigured: Boolean(NOTION_TOKEN),
     model: POE_MODEL,
     notionDemoUrl: NOTION_DEMO_URL,
+    adhdDemoUrl: ADHD_DEMO_URL,
+    adhdConfigured: Boolean(NOTION_TOKEN && ADHD_DATA_SOURCE_ID),
     toolsManifest: fs.existsSync(path.join(ROOT, 'tools.js')),
   });
+});
+
+function extractNotionValue(prop) {
+  if (!prop || !prop.type) return '';
+  switch (prop.type) {
+    case 'title':
+      return (prop.title || []).map((t) => t.plain_text).join('');
+    case 'rich_text':
+      return (prop.rich_text || []).map((t) => t.plain_text).join('');
+    case 'number':
+      return prop.number ?? '';
+    case 'select':
+      return prop.select?.name || '';
+    case 'multi_select':
+      return (prop.multi_select || []).map((o) => o.name).join(', ');
+    case 'url':
+      return prop.url || '';
+    default:
+      return '';
+  }
+}
+
+function pageToPatient(page) {
+  const p = page.properties || {};
+  const baseline = Number(extractNotionValue(p['ADHD-RS Baseline']));
+  const latest = Number(extractNotionValue(p['ADHD-RS Latest']));
+  return {
+    patient_id: extractNotionValue(p['Patient ID']),
+    age: extractNotionValue(p.Age),
+    sex: extractNotionValue(p.Sex),
+    adhd_subtype: extractNotionValue(p['ADHD Subtype']),
+    treatment: extractNotionValue(p.Treatment),
+    dose: extractNotionValue(p.Dose),
+    weeks_on_tx: extractNotionValue(p['Weeks on Tx']),
+    adhd_rs_baseline: baseline,
+    adhd_rs_latest: latest,
+    adhd_rs_change:
+      Number.isFinite(baseline) && Number.isFinite(latest)
+        ? baseline - latest
+        : null,
+    cgi_i: extractNotionValue(p['CGI-I']),
+    adverse_events: extractNotionValue(p['Adverse Events']),
+    follow_up: extractNotionValue(p['Follow-up']),
+    site: extractNotionValue(p.Site),
+    comorbidity: extractNotionValue(p.Comorbidity),
+  };
+}
+
+async function fetchAdhdPatients(force = false) {
+  if (!NOTION_TOKEN) {
+    throw new Error('NOTION_TOKEN is not configured');
+  }
+  const now = Date.now();
+  if (!force && adhdPatientCache.rows.length && now - adhdPatientCache.at < ADHD_CACHE_MS) {
+    return adhdPatientCache.rows;
+  }
+
+  const rows = [];
+  let cursor;
+
+  do {
+    const notionRes = await fetch(
+      `https://api.notion.com/v1/data_sources/${ADHD_DATA_SOURCE_ID}/query`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${NOTION_TOKEN}`,
+          'Content-Type': 'application/json',
+          'Notion-Version': NOTION_API_VERSION,
+        },
+        body: JSON.stringify({
+          page_size: 100,
+          start_cursor: cursor,
+        }),
+      }
+    );
+
+    if (!notionRes.ok) {
+      const errText = await notionRes.text();
+      throw new Error(parseNotionError(errText));
+    }
+
+    const data = await notionRes.json();
+    for (const page of data.results || []) {
+      rows.push(pageToPatient(page));
+    }
+    cursor = data.has_more ? data.next_cursor : undefined;
+  } while (cursor);
+
+  adhdPatientCache = { at: now, rows };
+  return rows;
+}
+
+app.get('/api/adhd/patients', async (_req, res) => {
+  try {
+    const patients = await fetchAdhdPatients();
+    res.json({ count: patients.length, patients, databaseUrl: ADHD_DEMO_URL });
+  } catch (err) {
+    res.status(503).json({ error: err.message, databaseUrl: ADHD_DEMO_URL });
+  }
+});
+
+app.post('/api/adhd/ask', async (req, res) => {
+  if (!POE_API_KEY) {
+    return res.status(503).json({ error: 'POE_API_KEY is not configured on the server.' });
+  }
+
+  const question = String(req.body?.question || '').trim();
+  if (!question) {
+    return res.status(400).json({ error: 'question is required' });
+  }
+
+  try {
+    const patients = await fetchAdhdPatients();
+    const cohortJson = JSON.stringify(patients, null, 2);
+
+    const systemPrompt = `You are a research assistant for a fictional ADHD pharmacotherapy cohort study (demo data only).
+Answer questions using ONLY the patient database JSON provided. Be concise, structured, and cite patient IDs when relevant.
+If data is insufficient, say so. Do not invent patients. Treat this as synthetic demo data for training/demos.
+Use bullet points or short paragraphs. You may respond in English or Traditional Chinese if the user writes in Chinese.`;
+
+    const userPrompt = `Patient database (${patients.length} rows):
+${cohortJson}
+
+Research question: ${question}`;
+
+    const poeRes = await fetch('https://api.poe.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${POE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: POE_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 1500,
+      }),
+    });
+
+    if (!poeRes.ok) {
+      const errText = await poeRes.text();
+      return res.status(poeRes.status).json({
+        error: `Poe API error: ${poeRes.status}`,
+        detail: errText.slice(0, 500),
+      });
+    }
+
+    const data = await poeRes.json();
+    const answer = data.choices?.[0]?.message?.content || 'No response from model.';
+
+    res.json({
+      answer,
+      patientCount: patients.length,
+      databaseUrl: ADHD_DEMO_URL,
+      model: POE_MODEL,
+    });
+  } catch (err) {
+    console.error('adhd ask error:', err);
+    res.status(500).json({ error: err.message, databaseUrl: ADHD_DEMO_URL });
+  }
 });
 
 app.post('/api/extract', async (req, res) => {

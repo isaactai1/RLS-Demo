@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="x-poe-datastore-behavior" content="local_only">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://puc.poecdn.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com;
+  connect-src 'self';
+">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADHD Research Assistant · RLS Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ff;
+    --surface: #ffffff;
+    --text: #1e1b4b;
+    --muted: #6366a0;
+    --border: #e4e2f5;
+    --accent: #6366f1;
+    --accent-soft: rgba(99, 102, 241, 0.12);
+    --assistant: #4f46e5;
+    --user: #0d9488;
+    --user-soft: rgba(13, 148, 136, 0.12);
+    --error: #dc2626;
+    --error-soft: rgba(220, 38, 38, 0.08);
+    --radius: 16px;
+    --font: 'DM Sans', system-ui, sans-serif;
+  }
+
+  html.dark {
+    --bg: #0f0e1a;
+    --surface: #1a1830;
+    --text: #eef0ff;
+    --muted: #a5a8d6;
+    --border: #2d2a4a;
+    --accent: #818cf8;
+    --accent-soft: rgba(129, 140, 248, 0.15);
+    --assistant: #a5b4fc;
+    --user: #2dd4bf;
+    --user-soft: rgba(45, 212, 191, 0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mesh {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 50% at 10% 0%, var(--accent-soft), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 100% 20%, var(--user-soft), transparent 50%);
+  }
+
+  .layout {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .brand-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .brand-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .brand-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .cohort-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .cohort-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .cohort-pill.ready .cohort-dot { background: #22c55e; }
+
+  .db-link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .db-link:hover { text-decoration: underline; }
+
+  .quick-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  .quick-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .quick-btn {
+    text-align: left;
+    padding: 10px 12px;
+    font-family: var(--font);
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .quick-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100vh;
+  }
+
+  .chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .chat-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .chat-header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    max-width: 92%;
+    animation: fadeUp 0.35s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .msg.assistant .avatar {
+    background: var(--accent-soft);
+    color: var(--assistant);
+  }
+
+  .msg.user .avatar {
+    background: var(--user-soft);
+    color: var(--user);
+  }
+
+  .bubble {
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+
+  .msg.assistant .bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+
+  .msg.user .bubble {
+    background: var(--user);
+    color: #fff;
+    border-top-right-radius: 4px;
+  }
+
+  .welcome .bubble {
+    background: linear-gradient(135deg, var(--accent-soft), var(--user-soft));
+    border: 1px dashed var(--border);
+  }
+
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    border-top-left-radius: 4px;
+    width: fit-content;
+  }
+
+  .typing span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-5px); }
+  }
+
+  .composer {
+    padding: 16px 20px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .composer-inner {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .composer textarea {
+    flex: 1;
+    min-height: 44px;
+    max-height: 120px;
+    padding: 12px 14px;
+    font-family: var(--font);
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    resize: none;
+    line-height: 1.4;
+  }
+
+  .composer textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .send-btn {
+    padding: 12px 18px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+
+  .send-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .error-bar {
+    margin: 0 20px 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--error-soft);
+    border: 1px solid var(--error);
+    font-size: 13px;
+    color: var(--error);
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 768px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+    .sidebar {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      max-height: none;
+    }
+    .quick-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .main { height: auto; min-height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<div class="mesh"></div>
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="brand-eyebrow">RLS Demo · Research</div>
+      <div class="brand-title">ADHD Study Assistant</div>
+      <p class="brand-desc">Ask questions about the demo patient cohort — pro-grade ADHD treatments (stimulants, non-stimulants, alpha-2 agonists, combo).</p>
+    </div>
+    <div id="cohortPill" class="cohort-pill">
+      <span class="cohort-dot"></span>
+      <span id="cohortStatus">Loading cohort…</span>
+    </div>
+    <a id="dbLink" class="db-link" href="https://www.notion.so/77e155aa30b94b5a9f28e9dc56448e63" target="_blank" rel="noopener">Open patient database →</a>
+    <div class="quick-label">Quick questions</div>
+    <div class="quick-btns" id="quickBtns"></div>
+  </aside>
+
+  <div class="main">
+    <header class="chat-header">
+      <h2>Research follow-up</h2>
+      <p>Like chatting with your study coordinator — answers come from the Notion patient database.</p>
+    </header>
+
+    <div id="errorBar" class="error-bar hidden" role="alert"></div>
+
+    <div id="messages" class="messages">
+      <div class="msg assistant welcome">
+        <div class="avatar">RA</div>
+        <div class="bubble">Hello — I'm your research assistant for the <strong>ADHD Treatment Study (Demo)</strong> cohort.
+
+Ask about treatments, outcomes, adverse events, or site summaries. Pick a quick question on the left, or type your own.</div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea id="questionInput" rows="1" placeholder="e.g. Which patients improved most on ADHD-RS?"></textarea>
+        <button id="sendBtn" class="send-btn" type="button">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+  }
+
+  const API_BASE = window.location.origin;
+  const DEFAULT_QUESTIONS = [
+    'How many patients are currently active on treatment?',
+    'Which patient had the largest ADHD-RS score reduction, and by how much?',
+    'Summarize all adverse events reported in the cohort.',
+    'Compare stimulant vs non-stimulant treatments — who improved more?',
+    'Which patients withdrew or were lost to follow-up, and why might that matter?',
+    'Give me a brief overview by study site (HK vs TW).',
+    'Who is on Med + Behavioral therapy and what were their outcomes?',
+    'List all patients on lisdexamfetamine with their latest CGI-I.',
+  ];
+
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('questionInput');
+  const sendBtn = document.getElementById('sendBtn');
+  let busy = false;
+
+  function showError(msg) {
+    const bar = document.getElementById('errorBar');
+    bar.textContent = msg;
+    bar.classList.remove('hidden');
+  }
+
+  function hideError() {
+    document.getElementById('errorBar').classList.add('hidden');
+  }
+
+  function appendMessage(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${role}`;
+    const initial = role === 'user' ? 'You' : 'RA';
+    wrap.innerHTML = `
+      <div class="avatar">${initial === 'You' ? 'You' : 'RA'}</div>
+      <div class="bubble"></div>`;
+    wrap.querySelector('.bubble').textContent = text;
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return wrap;
+  }
+
+  function showTyping() {
+    const el = document.createElement('div');
+    el.className = 'msg assistant';
+    el.id = 'typingIndicator';
+    el.innerHTML = `
+      <div class="avatar">RA</div>
+      <div class="typing"><span></span><span></span><span></span></div>`;
+    messagesEl.appendChild(el);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function hideTyping() {
+    document.getElementById('typingIndicator')?.remove();
+  }
+
+  async function loadCohortMeta() {
+    const pill = document.getElementById('cohortPill');
+    const status = document.getElementById('cohortStatus');
+    const link = document.getElementById('dbLink');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/adhd/patients`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load');
+      if (data.databaseUrl) link.href = data.databaseUrl;
+      pill.classList.add('ready');
+      status.textContent = `${data.count} demo patients loaded`;
+    } catch (e) {
+      status.textContent = 'Cohort unavailable — check NOTION_TOKEN';
+    }
+  }
+
+  async function ask(question) {
+    if (!question.trim() || busy) return;
+    busy = true;
+    sendBtn.disabled = true;
+    hideError();
+    appendMessage('user', question.trim());
+    inputEl.value = '';
+    showTyping();
+
+    try {
+      const res = await fetch(`${API_BASE}/api/adhd/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: question.trim() }),
+      });
+      const data = await res.json();
+      hideTyping();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      appendMessage('assistant', data.answer);
+    } catch (e) {
+      hideTyping();
+      showError(e.message);
+      appendMessage('assistant', `Sorry — I couldn't reach the study database. ${e.message}`);
+    } finally {
+      busy = false;
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  DEFAULT_QUESTIONS.forEach((q) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quick-btn';
+    btn.textContent = q;
+    btn.addEventListener('click', () => ask(q));
+    document.getElementById('quickBtns').appendChild(btn);
+  });
+
+  sendBtn.addEventListener('click', () => ask(inputEl.value));
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      ask(inputEl.value);
+    }
+  });
+
+  loadCohortMeta();
+</script>
+</body>
+</html>
