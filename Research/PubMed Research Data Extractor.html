@@ -320,7 +320,11 @@
                 const ok = result.created?.length || 0;
                 const fail = result.errors?.length || 0;
                 let msg = `Uploaded ${ok} row(s) to Notion.`;
-                if (fail) msg += ` ${fail} failed.`;
+                if (fail) {
+                    const detail = result.errors[0]?.error || 'Unknown error';
+                    msg += ` ${fail} failed: ${detail}`;
+                    showError(detail);
+                }
                 if (result.notionDemoUrl) {
                     msg += ` <a href="${result.notionDemoUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">Open demo database</a>`;
                 }

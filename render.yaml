@@ -22,6 +22,8 @@ services:
       - key: NOTION_TOKEN
         sync: false
       - key: NOTION_DATABASE_ID
-        value: b34bd47e6a11414fbee75d51d79994e7
+        value: b34bd47e-6a11-414f-bee7-5d51d79994e7
+      - key: NOTION_DATA_SOURCE_ID
+        value: f9213e70-6aff-4b5f-8cf5-cf0e72db0382
       - key: NOTION_DEMO_URL
         value: https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7

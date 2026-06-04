@@ -10,12 +10,37 @@ const INDEX_FILE = path.join(ROOT, 'Index.html');
 const POE_API_KEY = process.env.POE_API_KEY;
 const POE_MODEL = process.env.POE_MODEL || 'gemini-3.1-flash-lite';
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
-const NOTION_DATABASE_ID = (
-  process.env.NOTION_DATABASE_ID || 'b34bd47e6a11414fbee75d51d79994e7'
-).replace(/-/g, '');
+const NOTION_DATABASE_ID = toNotionUuid(
+  process.env.NOTION_DATABASE_ID || 'b34bd47e-6a11-414f-bee7-5d51d79994e7'
+);
+const NOTION_DATA_SOURCE_ID = toNotionUuid(
+  process.env.NOTION_DATA_SOURCE_ID || 'f9213e70-6aff-4b5f-8cf5-cf0e72db0382'
+);
 const NOTION_DEMO_URL =
   process.env.NOTION_DEMO_URL ||
   'https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7';
+const NOTION_API_VERSION = '2025-09-03';
+
+function toNotionUuid(id) {
+  const s = String(id).replace(/-/g, '');
+  if (s.length !== 32) return id;
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`;
+}
+
+function parseNotionError(body) {
+  try {
+    const j = JSON.parse(body);
+    if (j.code === 'object_not_found') {
+      return (
+        'Notion integration cannot access the demo database. ' +
+        'Open the database → ⋯ → Connections → add your integration.'
+      );
+    }
+    return j.message || body;
+  } catch {
+    return body;
+  }
+}
 
 app.use(express.json({ limit: '2mb' }));
 
@@ -125,6 +150,68 @@ function notionTitle(value) {
   return [{ type: 'text', text: { content: String(value || 'Untitled').slice(0, 2000) } }];
 }
 
+function buildNotionProperties(row) {
+  const status = row.study_design === 'Error' ? 'Error' : 'Extracted';
+  const yearNum = parseInt(String(row.year).replace(/\D/g, ''), 10);
+  const pmid = String(row.pmid || '').trim();
+
+  const properties = {
+    Article: { type: 'title', title: notionTitle(row.title) },
+    PMID: { type: 'rich_text', rich_text: notionRichText(pmid) },
+    'Study Design': {
+      type: 'rich_text',
+      rich_text: notionRichText(row.study_design),
+    },
+    Cohort: { type: 'rich_text', rich_text: notionRichText(row.cohort) },
+    'Sample Size': {
+      type: 'rich_text',
+      rich_text: notionRichText(row.sample_size),
+    },
+    Method: { type: 'rich_text', rich_text: notionRichText(row.method) },
+    Status: { type: 'select', select: { name: status } },
+  };
+
+  if (/^\d+$/.test(pmid)) {
+    properties['PubMed URL'] = {
+      type: 'url',
+      url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+    };
+  }
+
+  if (!Number.isNaN(yearNum) && yearNum > 0) {
+    properties.Year = { type: 'number', number: yearNum };
+  }
+
+  return properties;
+}
+
+async function createNotionPage(row) {
+  const body = {
+    parent: {
+      type: 'data_source_id',
+      data_source_id: NOTION_DATA_SOURCE_ID,
+    },
+    properties: buildNotionProperties(row),
+  };
+
+  const notionRes = await fetch('https://api.notion.com/v1/pages', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${NOTION_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Notion-Version': NOTION_API_VERSION,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (notionRes.ok) {
+    return { ok: true, page: await notionRes.json() };
+  }
+
+  const errText = await notionRes.text();
+  return { ok: false, status: notionRes.status, error: parseNotionError(errText) };
+}
+
 app.post('/api/notion/upload', async (req, res) => {
   if (!NOTION_TOKEN) {
     return res.status(503).json({
@@ -142,48 +229,17 @@ app.post('/api/notion/upload', async (req, res) => {
   const errors = [];
 
   for (const row of rows) {
-    const status = row.study_design === 'Error' ? 'Error' : 'Extracted';
-    const yearNum = parseInt(String(row.year).replace(/\D/g, ''), 10);
-
-    const properties = {
-      Article: { title: notionTitle(row.title) },
-      PMID: { rich_text: notionRichText(row.pmid) },
-      'Study Design': { rich_text: notionRichText(row.study_design) },
-      Cohort: { rich_text: notionRichText(row.cohort) },
-      'Sample Size': { rich_text: notionRichText(row.sample_size) },
-      Method: { rich_text: notionRichText(row.method) },
-      Status: { select: { name: status } },
-      'PubMed URL': {
-        url: `https://pubmed.ncbi.nlm.nih.gov/${row.pmid}/`,
-      },
-    };
-
-    if (!Number.isNaN(yearNum) && yearNum > 0) {
-      properties.Year = { number: yearNum };
-    }
-
     try {
-      const notionRes = await fetch('https://api.notion.com/v1/pages', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${NOTION_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Notion-Version': '2022-06-28',
-        },
-        body: JSON.stringify({
-          parent: { database_id: NOTION_DATABASE_ID },
-          properties,
-        }),
-      });
-
-      if (!notionRes.ok) {
-        const errBody = await notionRes.text();
-        errors.push({ pmid: row.pmid, error: errBody.slice(0, 300) });
-        continue;
+      const result = await createNotionPage(row);
+      if (result.ok) {
+        created.push({
+          pmid: row.pmid,
+          url: result.page.url,
+          id: result.page.id,
+        });
+      } else {
+        errors.push({ pmid: row.pmid, error: result.error, status: result.status });
       }
-
-      const page = await notionRes.json();
-      created.push({ pmid: row.pmid, url: page.url, id: page.id });
     } catch (err) {
       errors.push({ pmid: row.pmid, error: err.message });
     }

@@ -22,6 +22,14 @@ render.yaml         ← Render Blueprint
 ### Notion demo 資料庫
 
 - [PubMed Research Extractor — Demo](https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7)
+- 在 [notion.so/my-integrations](https://www.notion.so/my-integrations) 建立 integration，複製 **Internal Integration Secret** → Render 環境變數 `NOTION_TOKEN`
+- 打開上述 database → **⋯** → **Connections** → 加入你的 integration
+
+**上傳失敗（0 uploaded, 1 failed）常見原因：**
+
+1. Render 未設定 `NOTION_TOKEN`（只設了 `POE_API_KEY` 不夠）
+2. Integration 未連接到 demo database
+3. 用錯 token（要用 Notion integration secret，唔係 Poe key）
 
 ## 本機執行
 
@@ -34,26 +42,17 @@ npm start
 
 瀏覽：http://localhost:3000/
 
-## 推送到 GitHub（第一次）
+## 推送到 GitHub
 
-此資料夾**尚未**是 git repo。你需要：
+Repo：https://github.com/isaactai1/RLS-Demo
 
-| 步驟 | 做咩 |
-|------|------|
-| 1 | 去 [github.com/new](https://github.com/new) 開空 repo（例如 `RLS-Demo`），**唔好**勾 README |
-| 2 | 在本機專案目錄執行下面指令 |
-| 3 | Render Blueprint 連接該 GitHub repo |
+更新程式後：
 
 ```bash
 cd "/home/isaac-tai/pCloudDrive/Public Folder/RLS-Demo"
-
-git init
 git add .
-git commit -m "Initial RLS Demo app with Render Blueprint"
-
-git branch -M main
-git remote add origin https://github.com/你的帳號/RLS-Demo.git
-git push -u origin main
+git commit -m "你的更新說明"
+git push
 ```
 
 **會 commit 嘅主要檔案：** `Index.html`、`tools.js`、`Research/`、`server.js`、`render.yaml`、`package.json`、`scripts/`、`README.md`、`.gitignore`
