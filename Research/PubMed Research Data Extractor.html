@@ -1,448 +1,1016 @@
-<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="x-poe-datastore-behavior" content="local_only">
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://puc.poecdn.net;
-  style-src 'self' 'unsafe-inline';
+  script-src 'self' 'unsafe-inline' https://puc.poecdn.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com;
   connect-src 'self' https://eutils.ncbi.nlm.nih.gov;
 ">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubMed Research Data Extractor · RLS Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --bg-elevated: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #0d9488;
+    --accent-hover: #0f766e;
+    --accent-soft: rgba(13, 148, 136, 0.1);
+    --purple: #7c3aed;
+    --purple-soft: rgba(124, 58, 237, 0.1);
+    --success: #059669;
+    --success-soft: rgba(5, 150, 105, 0.1);
+    --error: #dc2626;
+    --error-soft: rgba(220, 38, 38, 0.08);
+    --warn: #d97706;
+    --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 20px 50px -12px rgba(15, 23, 42, 0.15);
+    --radius: 14px;
+    --radius-sm: 10px;
+    --font: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PubMed Research Data Extractor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .loading {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-    </style>
-<script src="https://puc.poecdn.net/authenticated_preview_page/syncedState.bd4eeeb8e8e02052ee92.js"></script></head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">
-                PubMed Research Data Extractor
-            </h1>
-            <p class="text-gray-600 dark:text-gray-300">
-                Extract study design, cohort, sample size, methods, and publication year from PubMed articles
-            </p>
-            <p id="serverStatus" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p>
-            <a id="notionDemoLink" href="https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7" target="_blank" rel="noopener" class="inline-block mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">View Notion demo database →</a>
-        </div>
+  html.dark {
+    --bg: #0b1120;
+    --bg-elevated: #131c2e;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #1e293b;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-soft: rgba(45, 212, 191, 0.12);
+    --purple: #a78bfa;
+    --purple-soft: rgba(167, 139, 250, 0.12);
+    --success: #34d399;
+    --success-soft: rgba(52, 211, 153, 0.12);
+    --error: #f87171;
+    --error-soft: rgba(248, 113, 113, 0.1);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 24px 60px -12px rgba(0, 0, 0, 0.5);
+  }
 
-        <!-- Input Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-            <div class="mb-4">
-                <label for="pmids" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Enter PMIDs (one per line or comma-separated):
-                </label>
-                <textarea id="pmids" rows="4" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Enter PMIDs, e.g.:
-12345678
-23456789
-34567890"></textarea>
-            </div>
-            
-            <button id="extractBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed" onclick="extractData()">
-                <span id="btnText">Extract Research Data</span>
-                <div id="btnLoading" class="hidden inline-flex items-center">
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                </div>
-            </button>
-        </div>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        <!-- Progress Section -->
-        <div id="progressSection" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Processing Progress</h3>
-            <div id="progressList" class="space-y-2"></div>
-        </div>
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
 
-        <!-- Results Section -->
-        <div id="resultsSection" class="hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                <div class="flex flex-wrap gap-2 justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Extracted Research Data</h3>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="notionBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 disabled:opacity-50" onclick="uploadToNotion()">
-                            Upload to Notion
-                        </button>
-                        <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200" onclick="exportToCSV()">
-                            Export CSV
-                        </button>
-                    </div>
-                </div>
-                <p id="notionUploadStatus" class="hidden mb-4 text-sm text-gray-600 dark:text-gray-300"></p>
-                <div class="overflow-x-auto">
-                    <table id="resultsTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">PMID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Study Design</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cohort</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sample Size</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Method</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Year</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultsBody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  .bg-mesh {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% -10%, var(--accent-soft), transparent 50%),
+      radial-gradient(ellipse 60% 40% at 90% 10%, var(--purple-soft), transparent 45%),
+      radial-gradient(ellipse 50% 30% at 50% 100%, var(--accent-soft), transparent 40%);
+  }
 
-        <!-- Error Section -->
-        <div id="errorSection" class="hidden bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-8">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
-                    <div id="errorMessage" class="mt-2 text-sm text-red-700 dark:text-red-300"></div>
-                </div>
-            </div>
-        </div>
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 28px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 520px;
+  }
+
+  .status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    align-items: center;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .pill-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  .pill.ready .pill-dot { background: var(--success); }
+  .pill.warn .pill-dot { background: var(--warn); }
+
+  .link-notion {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--purple);
+    text-decoration: none;
+    margin-left: auto;
+  }
+
+  .link-notion:hover { text-decoration: underline; }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    padding: 4px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .step {
+    flex: 1;
+    text-align: center;
+    padding: 10px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    transition: all 0.25s ease;
+  }
+
+  .step.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .step.done {
+    color: var(--success);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .card-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  textarea::placeholder { color: var(--text-muted); opacity: 0.7; }
+
+  .samples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .sample-chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .sample-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .pmid-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px 20px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+    box-shadow: 0 4px 14px var(--accent-soft);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px var(--accent-soft);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+
+  /* Progress */
+  .progress-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .progress-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .progress-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .progress-item.loading .progress-icon {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .progress-item.success .progress-icon {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+
+  .progress-item.error .progress-icon {
+    background: var(--error-soft);
+    color: var(--error);
+  }
+
+  .progress-pmid {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .progress-msg {
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  /* Results header */
+  .results-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .results-count {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .results-count strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .btn-secondary {
+    padding: 9px 16px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-secondary.notion {
+    background: var(--purple-soft);
+    border-color: transparent;
+    color: var(--purple);
+  }
+
+  .btn-secondary.notion:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .upload-status {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .upload-status a { color: var(--purple); font-weight: 600; }
+
+  /* Result cards */
+  .results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .result-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+
+  .result-card:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .result-card-header {
+    padding: 14px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .result-pmid {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .result-pmid:hover { text-decoration: underline; }
+
+  .result-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .result-year {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .result-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .result-field {
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+  }
+
+  .field-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .field-value {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .field-value.wide {
+    grid-column: 1 / -1;
+  }
+
+  /* Error */
+  .error-banner {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--error-soft);
+    border: 1px solid var(--error);
+    margin-bottom: 20px;
+    animation: slideIn 0.3s ease;
+  }
+
+  .error-banner svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--error);
+  }
+
+  .error-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--error);
+  }
+
+  #errorMessage {
+    font-size: 13px;
+    margin-top: 4px;
+    color: var(--text);
+  }
+
+  @media (max-width: 640px) {
+    .app { padding: 16px 14px 32px; }
+    .card { padding: 18px; }
+    .steps { flex-wrap: wrap; }
+    .step { flex: 1 1 45%; }
+    .link-notion { margin-left: 0; width: 100%; margin-top: 4px; }
+  }
+</style>
+<script src="https://puc.poecdn.net/authenticated_preview_page/syncedState.bd4eeeb8e8e02052ee92.js"></script>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="app">
+  <header class="header">
+    <div class="eyebrow">RLS Demo · Research</div>
+    <h1>PubMed Data Extractor</h1>
+    <p class="subtitle">Pull abstracts from PubMed, extract study metadata with AI, then export or sync to Notion.</p>
+    <div class="status-row">
+      <span id="pillAi" class="pill warn"><span class="pill-dot"></span><span id="serverStatus">Checking server…</span></span>
+      <span id="pillNotion" class="pill warn"><span class="pill-dot"></span><span id="notionStatus">Notion</span></span>
+      <a id="notionDemoLink" class="link-notion" href="https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7" target="_blank" rel="noopener">Demo database →</a>
     </div>
+  </header>
 
-    <script>
-        // Dark mode support
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
+  <div class="steps" aria-hidden="true">
+    <div class="step active" id="step1">1 · PMIDs</div>
+    <div class="step" id="step2">2 · Fetch</div>
+    <div class="step" id="step3">3 · Extract</div>
+    <div class="step" id="step4">4 · Export</div>
+  </div>
+
+  <div id="errorSection" class="error-banner hidden" role="alert">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+    <div>
+      <div class="error-title">Something went wrong</div>
+      <div id="errorMessage"></div>
+    </div>
+  </div>
+
+  <section class="card">
+    <div class="card-title">Enter PMIDs</div>
+    <p class="card-hint">One per line or comma-separated. Only numeric IDs are accepted.</p>
+    <label for="pmids">PubMed IDs</label>
+    <textarea id="pmids" placeholder="e.g. 38123456&#10;39234567&#10;40345678"></textarea>
+    <p class="pmid-meta"><span id="pmidCount">0</span> valid PMID(s) detected</p>
+    <div class="samples">
+      <button type="button" class="sample-chip" data-pmid="34013262">34013262</button>
+      <button type="button" class="sample-chip" data-pmid="35212345">35212345</button>
+      <button type="button" class="sample-chip" data-pmid="37890123">37890123</button>
+    </div>
+    <button id="extractBtn" class="btn-primary" onclick="extractData()">
+      <span id="btnText" class="btn-inner">Extract research data</span>
+      <span id="btnLoading" class="btn-inner hidden"><span class="spinner"></span> Processing…</span>
+    </button>
+  </section>
+
+  <section id="progressSection" class="card hidden">
+    <div class="card-title">Progress</div>
+    <p class="card-hint">Fetching from PubMed, then AI extraction per article.</p>
+    <div id="progressList" class="progress-list"></div>
+  </section>
+
+  <section id="resultsSection" class="card hidden">
+    <div class="results-head">
+      <div>
+        <div class="card-title">Results</div>
+        <p class="results-count"><strong id="resultsCount">0</strong> articles extracted</p>
+      </div>
+      <div class="btn-group">
+        <button id="notionBtn" class="btn-secondary notion" onclick="uploadToNotion()">Upload to Notion</button>
+        <button id="exportBtn" class="btn-secondary" onclick="exportToCSV()">Export CSV</button>
+      </div>
+    </div>
+    <div id="notionUploadStatus" class="upload-status hidden"></div>
+    <div id="resultsGrid" class="results-grid"></div>
+  </section>
+</div>
+
+<script>
+  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+  }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    document.documentElement.classList.toggle('dark', e.matches);
+  });
+
+  let extractedData = [];
+  const API_BASE = window.location.origin;
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str ?? '';
+    return d.innerHTML;
+  }
+
+  function parsePmids(text) {
+    return text.split(/[,\n]/).map((id) => id.trim()).filter((id) => id && /^\d+$/.test(id));
+  }
+
+  function updatePmidCount() {
+    const n = parsePmids(document.getElementById('pmids').value).length;
+    document.getElementById('pmidCount').textContent = n;
+  }
+
+  document.getElementById('pmids').addEventListener('input', updatePmidCount);
+
+  document.querySelectorAll('.sample-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const ta = document.getElementById('pmids');
+      const id = chip.dataset.pmid;
+      ta.value = ta.value.trim() ? `${ta.value.trim()}\n${id}` : id;
+      updatePmidCount();
+      ta.focus();
+    });
+  });
+
+  function setStep(n) {
+    ['step1', 'step2', 'step3', 'step4'].forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.classList.remove('active', 'done');
+      if (i + 1 < n) el.classList.add('done');
+      else if (i + 1 === n) el.classList.add('active');
+    });
+  }
+
+  async function loadServerConfig() {
+    const pillAi = document.getElementById('pillAi');
+    const pillNotion = document.getElementById('pillNotion');
+    const statusEl = document.getElementById('serverStatus');
+    const notionEl = document.getElementById('notionStatus');
+    const link = document.getElementById('notionDemoLink');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/health`);
+      if (!res.ok) throw new Error();
+      const cfg = await res.json();
+      if (cfg.notionDemoUrl) link.href = cfg.notionDemoUrl;
+
+      if (cfg.poeConfigured) {
+        pillAi.classList.add('ready');
+        pillAi.classList.remove('warn');
+        statusEl.textContent = `AI · ${cfg.model}`;
+      } else {
+        statusEl.textContent = 'AI · set POE_API_KEY';
+      }
+
+      if (cfg.notionConfigured) {
+        pillNotion.classList.add('ready');
+        pillNotion.classList.remove('warn');
+        notionEl.textContent = 'Notion · ready';
+      } else {
+        notionEl.textContent = 'Notion · set NOTION_TOKEN';
+      }
+    } catch {
+      statusEl.textContent = 'Offline · run server';
+      notionEl.textContent = 'Notion · unavailable';
+    }
+  }
+  loadServerConfig();
+
+  function showError(message) {
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('errorSection').classList.remove('hidden');
+  }
+
+  function hideError() {
+    document.getElementById('errorSection').classList.add('hidden');
+  }
+
+  function setLoading(isLoading) {
+    const btn = document.getElementById('extractBtn');
+    document.getElementById('btnText').classList.toggle('hidden', isLoading);
+    document.getElementById('btnLoading').classList.toggle('hidden', !isLoading);
+    btn.disabled = isLoading;
+  }
+
+  function updateProgress(pmid, status, message) {
+    document.getElementById('progressSection').classList.remove('hidden');
+    if (status === 'loading' && message.includes('PubMed')) setStep(2);
+    if (status === 'loading' && message.includes('AI')) setStep(3);
+
+    let item = document.getElementById(`progress-${pmid}`);
+    if (!item) {
+      item = document.createElement('div');
+      item.id = `progress-${pmid}`;
+      item.className = 'progress-item';
+      document.getElementById('progressList').appendChild(item);
+    }
+
+    item.className = `progress-item ${status}`;
+    const icons = { loading: '⋯', success: '✓', error: '✕' };
+    item.innerHTML = `
+      <div class="progress-icon">${icons[status] || '⋯'}</div>
+      <div>
+        <div class="progress-pmid">PMID ${escapeHtml(pmid)}</div>
+        <div class="progress-msg">${escapeHtml(message)}</div>
+      </div>`;
+  }
+
+  async function fetchPubMedData(pmids) {
+    const baseUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
+    const results = [];
+
+    for (const pmid of pmids) {
+      try {
+        updateProgress(pmid, 'loading', 'Fetching from PubMed…');
+        const summaryResponse = await fetch(`${baseUrl}esummary.fcgi?db=pubmed&id=${pmid}&retmode=json`);
+        const summaryData = await summaryResponse.json();
+
+        if (summaryData.error || !summaryData.result?.[pmid]) {
+          updateProgress(pmid, 'error', 'Article not found');
+          continue;
         }
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-            if (event.matches) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+
+        const article = summaryData.result[pmid];
+        const fetchResponse = await fetch(`${baseUrl}efetch.fcgi?db=pubmed&id=${pmid}&retmode=xml`);
+        const xmlText = await fetchResponse.text();
+        const xmlDoc = new DOMParser().parseFromString(xmlText, 'text/xml');
+        const abstractTexts = xmlDoc.querySelectorAll('AbstractText');
+
+        let abstract = '';
+        abstractTexts.forEach((node) => {
+          const label = node.getAttribute('Label');
+          const text = node.textContent;
+          abstract += label ? `${label}: ${text}\n` : `${text}\n`;
         });
 
-        let extractedData = [];
-        const API_BASE = window.location.origin;
+        results.push({
+          pmid,
+          title: article.title || 'No title available',
+          abstract: abstract.trim() || 'No abstract available',
+          year: article.pubdate ? article.pubdate.split(' ')[0] : 'Unknown',
+        });
+        updateProgress(pmid, 'success', 'Fetched from PubMed');
+      } catch (error) {
+        updateProgress(pmid, 'error', `Fetch error: ${error.message}`);
+      }
+    }
+    return results;
+  }
 
-        async function loadServerConfig() {
-            try {
-                const res = await fetch(`${API_BASE}/api/health`);
-                if (!res.ok) return;
-                const cfg = await res.json();
-                const el = document.getElementById('serverStatus');
-                const link = document.getElementById('notionDemoLink');
-                if (cfg.notionDemoUrl) link.href = cfg.notionDemoUrl;
-                const parts = [];
-                parts.push(cfg.poeConfigured ? `AI: ${cfg.model}` : 'AI: configure POE_API_KEY on server');
-                parts.push(cfg.notionConfigured ? 'Notion: ready' : 'Notion: set NOTION_TOKEN on server');
-                el.textContent = parts.join(' · ');
-            } catch {
-                document.getElementById('serverStatus').textContent =
-                    'Run npm start (or deploy on Render) so Poe and Notion APIs work from the server.';
-            }
-        }
-        loadServerConfig();
+  async function extractWithPoe(articleData) {
+    try {
+      updateProgress(articleData.pmid, 'loading', 'Extracting with AI…');
+      const response = await fetch(`${API_BASE}/api/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pmid: articleData.pmid,
+          title: articleData.title,
+          abstract: articleData.abstract,
+          year: articleData.year,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || response.statusText);
+      updateProgress(articleData.pmid, 'success', 'Metadata extracted');
+      return data;
+    } catch (error) {
+      updateProgress(articleData.pmid, 'error', `Extraction error: ${error.message}`);
+      return {
+        pmid: articleData.pmid,
+        title: articleData.title,
+        study_design: 'Error',
+        cohort: 'Error',
+        sample_size: 'Error',
+        method: 'Error',
+        year: articleData.year || 'Error',
+      };
+    }
+  }
 
-        function showError(message) {
-            const errorSection = document.getElementById('errorSection');
-            const errorMessage = document.getElementById('errorMessage');
-            errorMessage.textContent = message;
-            errorSection.classList.remove('hidden');
-        }
+  async function uploadToNotion() {
+    if (!extractedData.length) {
+      showError('Extract data first before uploading to Notion');
+      return;
+    }
 
-        function hideError() {
-            document.getElementById('errorSection').classList.add('hidden');
-        }
+    const btn = document.getElementById('notionBtn');
+    const statusEl = document.getElementById('notionUploadStatus');
+    btn.disabled = true;
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = 'Uploading to Notion…';
+    hideError();
 
-        function setLoading(isLoading) {
-            const btn = document.getElementById('extractBtn');
-            const btnText = document.getElementById('btnText');
-            const btnLoading = document.getElementById('btnLoading');
-            
-            if (isLoading) {
-                btn.disabled = true;
-                btnText.classList.add('hidden');
-                btnLoading.classList.remove('hidden');
-            } else {
-                btn.disabled = false;
-                btnText.classList.remove('hidden');
-                btnLoading.classList.add('hidden');
-            }
-        }
+    try {
+      const response = await fetch(`${API_BASE}/api/notion/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: extractedData }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Notion upload failed');
 
-        function updateProgress(pmid, status, message) {
-            const progressSection = document.getElementById('progressSection');
-            const progressList = document.getElementById('progressList');
-            
-            progressSection.classList.remove('hidden');
-            
-            let progressItem = document.getElementById(`progress-${pmid}`);
-            if (!progressItem) {
-                progressItem = document.createElement('div');
-                progressItem.id = `progress-${pmid}`;
-                progressItem.className = 'flex items-center space-x-2';
-                progressList.appendChild(progressItem);
-            }
-            
-            const statusIcon = status === 'success' ? '✅' : status === 'error' ? '❌' : '🔄';
-            progressItem.innerHTML = `
-                <span>${statusIcon}</span>
-                <span class="text-sm text-gray-600 dark:text-gray-300">PMID ${pmid}: ${message}</span>
-            `;
-        }
+      const ok = result.created?.length || 0;
+      const fail = result.errors?.length || 0;
+      let msg = `Uploaded ${ok} row(s) to Notion.`;
+      if (fail) {
+        const detail = result.errors[0]?.error || 'Unknown error';
+        msg += ` ${fail} failed: ${detail}`;
+        showError(detail);
+      }
+      if (result.notionDemoUrl) {
+        msg += ` <a href="${result.notionDemoUrl}" target="_blank" rel="noopener">Open demo database</a>`;
+      }
+      statusEl.innerHTML = msg;
+    } catch (error) {
+      showError(error.message);
+      statusEl.classList.add('hidden');
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
-        async function fetchPubMedData(pmids) {
-            const baseUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
-            const results = [];
-            
-            for (const pmid of pmids) {
-                try {
-                    updateProgress(pmid, 'loading', 'Fetching from PubMed...');
-                    
-                    // Fetch article summary
-                    const summaryResponse = await fetch(`${baseUrl}esummary.fcgi?db=pubmed&id=${pmid}&retmode=json`);
-                    const summaryData = await summaryResponse.json();
-                    
-                    if (summaryData.error || !summaryData.result || !summaryData.result[pmid]) {
-                        updateProgress(pmid, 'error', 'Article not found');
-                        continue;
-                    }
-                    
-                    const article = summaryData.result[pmid];
-                    
-                    // Fetch full abstract
-                    const fetchResponse = await fetch(`${baseUrl}efetch.fcgi?db=pubmed&id=${pmid}&retmode=xml`);
-                    const xmlText = await fetchResponse.text();
-                    
-                    // Parse XML to extract abstract
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-                    const abstractTexts = xmlDoc.querySelectorAll('AbstractText');
-                    
-                    let abstract = '';
-                    abstractTexts.forEach(node => {
-                        const label = node.getAttribute('Label');
-                        const text = node.textContent;
-                        if (label) {
-                            abstract += `${label}: ${text}\n`;
-                        } else {
-                            abstract += `${text}\n`;
-                        }
-                    });
-                    
-                    results.push({
-                        pmid: pmid,
-                        title: article.title || 'No title available',
-                        abstract: abstract.trim() || 'No abstract available',
-                        year: article.pubdate ? article.pubdate.split(' ')[0] : 'Unknown'
-                    });
-                    
-                    updateProgress(pmid, 'success', 'Data fetched successfully');
-                    
-                } catch (error) {
-                    console.error(`Error fetching PMID ${pmid}:`, error);
-                    updateProgress(pmid, 'error', `Fetch error: ${error.message}`);
-                }
-                
-            }
-            
-            return results;
-        }
+  function displayResults(data) {
+    const grid = document.getElementById('resultsGrid');
+    grid.innerHTML = '';
+    document.getElementById('resultsCount').textContent = data.length;
 
-        async function extractWithPoe(articleData) {
-            try {
-                updateProgress(articleData.pmid, 'loading', 'Extracting with Poe AI...');
+    data.forEach((item) => {
+      const card = document.createElement('article');
+      card.className = 'result-card';
+      const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${item.pmid}/`;
+      card.innerHTML = `
+        <div class="result-card-header">
+          <a class="result-pmid" href="${pubmedUrl}" target="_blank" rel="noopener">PMID ${escapeHtml(item.pmid)}</a>
+          <h3 class="result-title">${escapeHtml(item.title)}</h3>
+          <span class="result-year">${escapeHtml(String(item.year))}</span>
+        </div>
+        <div class="result-fields">
+          <div class="result-field">
+            <div class="field-label">Study design</div>
+            <div class="field-value">${escapeHtml(item.study_design)}</div>
+          </div>
+          <div class="result-field">
+            <div class="field-label">Sample size</div>
+            <div class="field-value">${escapeHtml(item.sample_size)}</div>
+          </div>
+          <div class="result-field wide">
+            <div class="field-label">Cohort</div>
+            <div class="field-value">${escapeHtml(item.cohort)}</div>
+          </div>
+          <div class="result-field wide">
+            <div class="field-label">Method</div>
+            <div class="field-value">${escapeHtml(item.method)}</div>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    });
 
-                const response = await fetch(`${API_BASE}/api/extract`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        pmid: articleData.pmid,
-                        title: articleData.title,
-                        abstract: articleData.abstract,
-                        year: articleData.year
-                    })
-                });
+    document.getElementById('resultsSection').classList.remove('hidden');
+    setStep(4);
+  }
 
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || response.statusText);
-                }
+  function exportToCSV() {
+    if (!extractedData.length) return;
+    const headers = ['PMID', 'Title', 'Study Design', 'Cohort', 'Sample Size', 'Method', 'Year'];
+    const csvContent = [
+      headers.join(','),
+      ...extractedData.map((row) => [
+        row.pmid,
+        `"${row.title.replace(/"/g, '""')}"`,
+        `"${row.study_design.replace(/"/g, '""')}"`,
+        `"${row.cohort.replace(/"/g, '""')}"`,
+        `"${row.sample_size.replace(/"/g, '""')}"`,
+        `"${row.method.replace(/"/g, '""')}"`,
+        row.year,
+      ].join(',')),
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pubmed_research_data.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
 
-                updateProgress(articleData.pmid, 'success', 'Data extracted successfully');
-                return data;
-            } catch (error) {
-                console.error(`Error extracting data for PMID ${articleData.pmid}:`, error);
-                updateProgress(articleData.pmid, 'error', `Extraction error: ${error.message}`);
-                return {
-                    pmid: articleData.pmid,
-                    title: articleData.title,
-                    study_design: 'Error',
-                    cohort: 'Error',
-                    sample_size: 'Error',
-                    method: 'Error',
-                    year: articleData.year || 'Error'
-                };
-            }
-        }
+  async function extractData() {
+    hideError();
+    setLoading(true);
+    setStep(1);
 
-        async function uploadToNotion() {
-            if (extractedData.length === 0) {
-                showError('Extract data first before uploading to Notion');
-                return;
-            }
+    const pmidsInput = document.getElementById('pmids').value.trim();
+    if (!pmidsInput) {
+      showError('Please enter at least one PMID');
+      setLoading(false);
+      return;
+    }
 
-            const btn = document.getElementById('notionBtn');
-            const statusEl = document.getElementById('notionUploadStatus');
-            btn.disabled = true;
-            statusEl.classList.remove('hidden');
-            statusEl.textContent = 'Uploading to Notion...';
-            hideError();
+    const pmids = parsePmids(pmidsInput);
+    if (!pmids.length) {
+      showError('Please enter valid PMIDs (numbers only)');
+      setLoading(false);
+      return;
+    }
 
-            try {
-                const response = await fetch(`${API_BASE}/api/notion/upload`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rows: extractedData })
-                });
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.error || 'Notion upload failed');
-                }
+    try {
+      extractedData = [];
+      document.getElementById('progressList').innerHTML = '';
+      document.getElementById('resultsSection').classList.add('hidden');
+      document.getElementById('progressSection').classList.remove('hidden');
 
-                const ok = result.created?.length || 0;
-                const fail = result.errors?.length || 0;
-                let msg = `Uploaded ${ok} row(s) to Notion.`;
-                if (fail) {
-                    const detail = result.errors[0]?.error || 'Unknown error';
-                    msg += ` ${fail} failed: ${detail}`;
-                    showError(detail);
-                }
-                if (result.notionDemoUrl) {
-                    msg += ` <a href="${result.notionDemoUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">Open demo database</a>`;
-                }
-                statusEl.innerHTML = msg;
-            } catch (error) {
-                showError(error.message);
-                statusEl.textContent = '';
-            } finally {
-                btn.disabled = false;
-            }
-        }
+      const articleData = await fetchPubMedData(pmids);
+      if (!articleData.length) {
+        showError('No valid articles found for the provided PMIDs');
+        setLoading(false);
+        return;
+      }
 
-        function displayResults(data) {
-            const resultsSection = document.getElementById('resultsSection');
-            const resultsBody = document.getElementById('resultsBody');
-            
-            resultsBody.innerHTML = '';
-            
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${item.pmid}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate" title="${item.title}">${item.title}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">${item.study_design}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate" title="${item.cohort}">${item.cohort}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">${item.sample_size}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate" title="${item.method}">${item.method}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">${item.year}</td>
-                `;
-                resultsBody.appendChild(row);
-            });
-            
-            resultsSection.classList.remove('hidden');
-        }
+      for (const article of articleData) {
+        extractedData.push(await extractWithPoe(article));
+        await new Promise((r) => setTimeout(r, 500));
+      }
 
-        function exportToCSV() {
-            if (extractedData.length === 0) return;
-            
-            const headers = ['PMID', 'Title', 'Study Design', 'Cohort', 'Sample Size', 'Method', 'Year'];
-            const csvContent = [
-                headers.join(','),
-                ...extractedData.map(row => [
-                    row.pmid,
-                    `"${row.title.replace(/"/g, '""')}"`,
-                    `"${row.study_design.replace(/"/g, '""')}"`,
-                    `"${row.cohort.replace(/"/g, '""')}"`,
-                    `"${row.sample_size.replace(/"/g, '""')}"`,
-                    `"${row.method.replace(/"/g, '""')}"`,
-                    row.year
-                ].join(','))
-            ].join('\n');
-            
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'pubmed_research_data.csv';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
+      displayResults(extractedData);
+    } catch (error) {
+      showError(`An error occurred: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-        async function extractData() {
-            hideError();
-            setLoading(true);
-            
-            const pmidsInput = document.getElementById('pmids').value.trim();
-            
-            if (!pmidsInput) {
-                showError('Please enter at least one PMID');
-                setLoading(false);
-                return;
-            }
-            
-            // Parse PMIDs
-            const pmids = pmidsInput
-                .split(/[,\n]/)
-                .map(id => id.trim())
-                .filter(id => id && /^\d+$/.test(id));
-            
-            if (pmids.length === 0) {
-                showError('Please enter valid PMIDs (numbers only)');
-                setLoading(false);
-                return;
-            }
-            
-            try {
-                // Clear previous results
-                extractedData = [];
-                document.getElementById('progressList').innerHTML = '';
-                document.getElementById('resultsSection').classList.add('hidden');
-                
-                // Fetch PubMed data
-                const articleData = await fetchPubMedData(pmids);
-                
-                if (articleData.length === 0) {
-                    showError('No valid articles found for the provided PMIDs');
-                    setLoading(false);
-                    return;
-                }
-                
-                for (const article of articleData) {
-                    const extracted = await extractWithPoe(article);
-                    extractedData.push(extracted);
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-                
-                // Display results
-                displayResults(extractedData);
-                
-            } catch (error) {
-                console.error('Error:', error);
-                showError(`An error occurred: ${error.message}`);
-            } finally {
-                setLoading(false);
-            }
-        }
-    </script>
-
-
-</body></html>
+  updatePmidCount();
+</script>
+</body>
+</html>
