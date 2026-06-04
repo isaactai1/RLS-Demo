@@ -22,6 +22,9 @@ render.yaml         ← Render Blueprint
 ### Notion demo 資料庫
 
 - [PubMed Research Extractor — Demo](https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7)
+- [ADHD Treatment Study — Patients (Demo)](https://www.notion.so/77e155aa30b94b5a9f28e9dc56448e63) — 10 個假病人，pro-grade 治療（MPH XR、Vyvanse、Atomoxetine、Guanfacine、Clonidine、合併治療等）
+
+**ADHD Research Assistant** 工具會讀取上面 database，用 AI 回答研究跟進問題。
 - 在 [notion.so/my-integrations](https://www.notion.so/my-integrations) 建立 integration，複製 **Internal Integration Secret** → Render 環境變數 `NOTION_TOKEN`
 - 打開上述 database → **⋯** → **Connections** → 加入你的 integration
 
