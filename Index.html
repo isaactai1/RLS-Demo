@@ -1,0 +1,1141 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta name="x-poe-datastore-behavior" content="local_only">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RLS Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=JetBrains+Mono:wght@300;400;600&amp;family=Archivo+Black&amp;display=swap" rel="stylesheet">
+    <script src="tools.js"></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #000000;
+            --gray-1: #fafafa;
+            --gray-2: #f0f0f0;
+            --gray-3: #888888;
+            --accent: #000000;
+        }
+
+        html.dark {
+            --bg: #000000;
+            --fg: #ffffff;
+            --gray-1: #0f0f0f;
+            --gray-2: #1a1a1a;
+            --gray-3: #777777;
+            --accent: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .tool-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2rem, 3vw, 3rem);
+            line-height: 1.1;
+            margin-bottom: 16px;
+            letter-spacing: 0.02em;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+
+        /* Animated Background */
+        .bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.03;
+        }
+
+        /* Top Bar with Animation */
+        .top-accent {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--fg);
+            z-index: 1000;
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: slideRight 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+
+        @keyframes slideRight {
+            to { transform: scaleX(1); }
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 4px;
+            left: 0;
+            right: 0;
+            background: var(--bg);
+            z-index: 999;
+            border-bottom: 2px solid var(--fg);
+            opacity: 0;
+            animation: fadeInSlide 0.8s ease-out 0.3s forwards;
+        }
+
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .logo {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: clamp(1.4rem, 2.5vw, 2rem);
+            line-height: 1;
+            cursor: pointer;
+            letter-spacing: -0.04em;
+            position: relative;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .logo:hover {
+            transform: scale(1.05) skewX(-2deg);
+        }
+
+        .logo::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--fg);
+            transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .logo:hover::after {
+            width: 100%;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .tool-indicator {
+            font-size: 0.85rem;
+            font-weight: 300;
+            max-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .tool-indicator.visible {
+            max-width: 400px;
+            opacity: 1;
+        }
+
+        .back-button {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            padding: 8px 20px;
+            background: var(--fg);
+            color: var(--bg);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(40px);
+        }
+
+        .back-button.visible {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(0);
+        }
+
+        .back-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: var(--bg);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .back-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .back-button span {
+            position: relative;
+            z-index: 1;
+            transition: color 0.3s ease 0.2s;
+        }
+
+        .back-button:hover span {
+            color: var(--fg);
+        }
+
+        /* Main Content */
+        .main-wrapper {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        /* Tools View */
+        .tools-section {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tools-section.hidden {
+            display: none;
+        }
+
+        .content-wrapper {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 32px 48px;
+        }
+
+        /* Hero Area */
+        .hero-area {
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out 0.6s forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-heading {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 8vw, 8rem);
+            line-height: 0.9;
+            margin-bottom: 16px;
+            letter-spacing: 0.02em;
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-subtext {
+            font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+            color: var(--gray-3);
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            font-weight: 300;
+            margin-left: 4px;
+        }
+
+        /* Metrics - Less emphasized */
+        .metrics {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out 0.7s forwards;
+        }
+
+        .metric {
+            flex: 1;
+            padding: 12px 16px;
+            color: var(--fg);
+            text-align: center;
+            border: 1px solid var(--gray-3);
+        }
+
+        .metric-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            display: block;
+            line-height: 1;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 300;
+            opacity: 0.7;
+        }
+
+        /* Controls Area */
+        .controls-area {
+            margin-bottom: 48px;
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out 0.8s forwards;
+        }
+
+        .search-box {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .search-field {
+            width: 100%;
+            padding: 20px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 400;
+            background: var(--bg);
+            border: 3px solid var(--fg);
+            color: var(--fg);
+            outline: none;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .search-field:focus {
+            background: var(--gray-1);
+            padding-left: 40px;
+        }
+
+        .search-field::placeholder {
+            color: var(--gray-3);
+            letter-spacing: 0.15em;
+        }
+
+        /* Filter Bar - Smaller buttons */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+
+        .filter-item {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            padding: 10px 20px;
+            background: var(--bg);
+            color: var(--fg);
+            border: 2px solid var(--fg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .filter-item::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background: var(--fg);
+            transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .filter-item:hover::after {
+            height: 100%;
+        }
+
+        .filter-item:hover {
+            color: var(--bg);
+        }
+
+        .filter-item span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .filter-item.active {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .filter-item.active::after {
+            height: 100%;
+        }
+
+        /* Tools Grid */
+        .tools-container {
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out 0.9s forwards;
+        }
+
+        .category-block {
+            margin-bottom: 64px;
+        }
+
+        .category-header {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1;
+            margin-bottom: 24px;
+            letter-spacing: 0.05em;
+            padding-bottom: 12px;
+            border-bottom: 4px solid var(--fg);
+            display: inline-block;
+            position: relative;
+        }
+
+        .category-header::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 4px;
+            background: var(--gray-3);
+            transition: width 0.6s ease;
+        }
+
+        .category-block:hover .category-header::after {
+            width: 100%;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2px;
+            background: var(--fg);
+            border: 2px solid var(--fg);
+        }
+
+        .tool-item {
+            background: var(--bg);
+            padding: 36px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .tool-item::before {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--fg);
+            transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 0;
+        }
+
+        .tool-item:hover::before {
+            top: 0;
+        }
+
+        .tool-item:hover {
+            transform: scale(1.03);
+            z-index: 10;
+            color: var(--bg);
+        }
+
+        .tool-item:active {
+            transform: scale(0.97);
+        }
+
+        .tool-item > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .tool-tag {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 16px;
+            font-weight: 400;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .tool-item:hover .tool-tag {
+            opacity: 0.8;
+        }
+
+        .tool-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.8rem, 2.5vw, 2.5rem);
+            line-height: 1.1;
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .tool-item:hover .tool-title {
+            transform: translateX(8px);
+        }
+
+        .tool-location {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            word-break: break-all;
+            line-height: 1.6;
+            font-weight: 300;
+            transition: opacity 0.3s ease;
+        }
+
+        .tool-item:hover .tool-location {
+            opacity: 0.9;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 100px 48px;
+            border: 3px solid var(--fg);
+            margin: 48px 0;
+        }
+
+        .empty-icon {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 5rem;
+            margin-bottom: 24px;
+            opacity: 0.1;
+        }
+
+        .empty-message {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 12px;
+            letter-spacing: 0.1em;
+        }
+
+        .empty-hint {
+            color: var(--gray-3);
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Tool Display */
+        .tool-viewer {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tool-viewer.visible {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tool-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* Staggered card animations */
+        .tools-grid .tool-item {
+            opacity: 0;
+            animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .tools-grid .tool-item:nth-child(1) { animation-delay: 0.1s; }
+        .tools-grid .tool-item:nth-child(2) { animation-delay: 0.2s; }
+        .tools-grid .tool-item:nth-child(3) { animation-delay: 0.3s; }
+        .tools-grid .tool-item:nth-child(4) { animation-delay: 0.4s; }
+        .tools-grid .tool-item:nth-child(n+5) { animation-delay: 0.5s; }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1024px) {
+            .header-content {
+                padding: 10px 20px;
+            }
+
+            .main-wrapper {
+                top: 52px;
+            }
+
+            .content-wrapper {
+                padding: 24px;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 2px;
+            }
+
+            .tool-item {
+                padding: 28px;
+                min-height: 180px;
+            }
+
+            .metrics {
+                flex-direction: column;
+                gap: 2px;
+            }
+
+            .tool-indicator {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            /* Compact header for mobile */
+            .top-accent {
+                height: 3px;
+            }
+
+            .header {
+                top: 3px;
+                border-bottom: 2px solid var(--fg);
+            }
+
+            .header-content {
+                padding: 8px 12px;
+                gap: 10px;
+            }
+
+            /* Smaller logo on mobile */
+            .logo {
+                font-size: 1.2rem;
+                letter-spacing: -0.02em;
+            }
+
+            .logo::after {
+                height: 2px;
+                bottom: -2px;
+            }
+
+            /* Compact back button */
+            .back-button {
+                font-size: 0.85rem;
+                padding: 6px 14px;
+                letter-spacing: 0.05em;
+            }
+
+            /* Adjust main wrapper for smaller header */
+            .main-wrapper {
+                top: 45px;
+            }
+
+            .content-wrapper {
+                padding: 16px 12px;
+            }
+
+            .tool-item {
+                padding: 20px;
+                min-height: 150px;
+            }
+
+            .hero-area {
+                margin-bottom: 24px;
+            }
+
+            .metrics {
+                margin-bottom: 24px;
+            }
+
+            .controls-area {
+                margin-bottom: 32px;
+            }
+
+            .search-box {
+                margin-bottom: 16px;
+            }
+
+            .search-field {
+                padding: 14px 16px;
+                font-size: 16px;
+                border: 2px solid var(--fg);
+            }
+
+            .search-field:focus {
+                padding-left: 24px;
+            }
+
+            /* Horizontal scrollable filters for mobile */
+            .filter-bar {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                gap: 6px;
+                padding-bottom: 6px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+                scrollbar-color: var(--fg) var(--bg);
+            }
+
+            .filter-bar::-webkit-scrollbar {
+                height: 4px;
+            }
+
+            .filter-bar::-webkit-scrollbar-track {
+                background: var(--gray-2);
+            }
+
+            .filter-bar::-webkit-scrollbar-thumb {
+                background: var(--fg);
+                border-radius: 2px;
+            }
+
+            .filter-item {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+                border: 2px solid var(--fg);
+                white-space: nowrap;
+            }
+
+            .category-block {
+                margin-bottom: 40px;
+            }
+
+            .category-header {
+                font-size: clamp(1.5rem, 5vw, 2rem);
+                margin-bottom: 16px;
+                padding-bottom: 8px;
+                border-bottom: 3px solid var(--fg);
+            }
+
+            .category-header::after {
+                bottom: -3px;
+                height: 3px;
+            }
+
+            .tools-grid {
+                border: 2px solid var(--fg);
+                gap: 2px;
+            }
+
+            .empty-state {
+                padding: 50px 20px;
+                border: 2px solid var(--fg);
+                margin: 24px 0;
+            }
+
+            .empty-icon {
+                font-size: 3rem;
+                margin-bottom: 16px;
+            }
+
+            .empty-message {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+            }
+
+            .empty-hint {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Reduce motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--fg);
+            border: 2px solid var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Canvas -->
+    <canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+    <!-- Top Accent Bar -->
+    <div class="top-accent"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo" onclick="showToolsList()">RLS DEMO</h1>
+            <div class="header-actions">
+                <span class="tool-indicator" id="currentToolName"></span>
+                <button class="back-button" id="backBtn" onclick="showToolsList()">
+                    <span>← RETURN</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        <!-- Tools Section -->
+        <div class="tools-section" id="toolsView">
+            <div class="content-wrapper">
+
+
+                <!--
+                Hero
+                <div class="hero-area">
+                    <h2 class="hero-heading">RLS Demo</h2>
+                    <p class="hero-subtext">Curated Utilities</p>
+                </div>
+
+                -->
+
+
+
+                <!-- Controls -->
+                <div class="controls-area">
+                    <div class="search-box">
+                        <input type="search" id="searchInput" class="search-field" placeholder="SEARCH TOOLS..." autocomplete="off">
+                    </div>
+                    <div class="filter-bar" id="filterContainer">
+                        <button class="filter-item active" data-category="all" onclick="setFilter('all')">
+                            <span>ALL</span>
+                        </button>
+                    </div>
+                </div>
+
+
+
+                <!-- Tools Container -->
+                <div class="tools-container" id="toolsContainer"></div>
+            </div>
+
+              <!-- Metrics -->
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-number" id="totalTools">0</span>
+                        <span class="metric-label">Total Tools</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-number" id="totalCategories">0</span>
+                        <span class="metric-label">Categories</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-number" id="showingTools">0</span>
+                        <span class="metric-label">Displaying</span>
+                    </div>
+                </div>
+        </div>
+
+
+
+        <!-- Tool Viewer -->
+        <div class="tool-viewer" id="toolDisplay">
+            <iframe class="tool-frame" id="toolIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"></iframe>
+        </div>
+
+
+
+</div>
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Animated background canvas
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let particles = [];
+        const particleCount = 30;
+
+        for (let i = 0; i < particleCount; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                size: Math.random() * 2 + 1
+            });
+        }
+
+        function animateBackground() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const isDark = document.documentElement.classList.contains('dark');
+            ctx.strokeStyle = isDark ? '#ffffff' : '#000000';
+            ctx.lineWidth = 0.5;
+
+            particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                // Draw connections
+                particles.slice(i + 1).forEach(p2 => {
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.globalAlpha = (150 - dist) / 150 * 0.3;
+                        ctx.stroke();
+                    }
+                });
+
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = isDark ? '#ffffff' : '#000000';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animateBackground);
+        }
+
+        animateBackground();
+
+        // App State
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let currentTool = null;
+
+        // Load tools
+        function loadTools() {
+            try {
+                if (!window.toolsData) {
+                    throw new Error('Tools data not found');
+                }
+                initializeFilters();
+                updateStats();
+                renderTools();
+            } catch (error) {
+                console.error('Error loading tools:', error);
+                document.getElementById('toolsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">ERROR</div>
+                        <div class="empty-message">Failed to Load</div>
+                        <div class="empty-hint">Ensure tools.js exists in the directory</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize filters
+        function initializeFilters() {
+            const filterContainer = document.getElementById('filterContainer');
+
+            window.toolsData.categories.forEach(category => {
+                const button = document.createElement('button');
+                button.className = 'filter-item';
+                button.dataset.category = category.name;
+                button.innerHTML = `<span>${category.name.toUpperCase()}</span>`;
+                button.onclick = () => setFilter(category.name);
+                filterContainer.appendChild(button);
+            });
+        }
+
+        // Update stats
+        function updateStats() {
+            const totalTools = window.toolsData.categories.reduce((sum, cat) => sum + cat.tools.length, 0);
+            const totalCategories = window.toolsData.categories.length;
+
+            document.getElementById('totalTools').textContent = totalTools;
+            document.getElementById('totalCategories').textContent = totalCategories;
+        }
+
+        // Set filter
+        function setFilter(category) {
+            currentFilter = category;
+
+            document.querySelectorAll('.filter-item').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === category);
+            });
+
+            renderTools();
+        }
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderTools();
+        });
+
+        // Render tools
+        function renderTools() {
+            const container = document.getElementById('toolsContainer');
+            container.innerHTML = '';
+
+            let visibleCount = 0;
+
+            window.toolsData.categories.forEach(category => {
+                if (currentFilter !== 'all' && currentFilter !== category.name) {
+                    return;
+                }
+
+                const filteredTools = category.tools.filter(tool =>
+                    tool.name.toLowerCase().includes(searchQuery) ||
+                    tool.path.toLowerCase().includes(searchQuery)
+                );
+
+                if (filteredTools.length === 0) {
+                    return;
+                }
+
+                visibleCount += filteredTools.length;
+
+                const block = document.createElement('div');
+                block.className = 'category-block';
+
+                const header = document.createElement('h3');
+                header.className = 'category-header';
+                header.textContent = category.name.toUpperCase();
+                block.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.className = 'tools-grid';
+
+                filteredTools.forEach(tool => {
+                    const card = createToolCard(tool, category.name);
+                    grid.appendChild(card);
+                });
+
+                block.appendChild(grid);
+                container.appendChild(block);
+            });
+
+            document.getElementById('showingTools').textContent = visibleCount;
+
+            if (visibleCount === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">404</div>
+                        <div class="empty-message">No Tools Found</div>
+                        <div class="empty-hint">Adjust your search or filter criteria</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Create tool card
+        function createToolCard(tool, categoryName) {
+            const card = document.createElement('div');
+            card.className = 'tool-item';
+
+            card.innerHTML = `
+                <div>
+                    <div class="tool-tag">${categoryName}</div>
+                    <div class="tool-title">${tool.name}</div>
+                </div>
+                <div class="tool-location">${tool.path}</div>
+            `;
+
+            card.onclick = () => openTool(tool);
+
+            return card;
+        }
+
+        // Open tool
+        function openTool(tool) {
+            currentTool = tool;
+
+            document.getElementById('toolsView').classList.add('hidden');
+            document.getElementById('toolDisplay').classList.add('visible');
+            document.getElementById('backBtn').classList.add('visible');
+            document.getElementById('currentToolName').classList.add('visible');
+            document.getElementById('currentToolName').textContent = tool.name;
+
+            document.getElementById('toolIframe').src = encodeURI(tool.path);
+        }
+
+        // Show tools list
+        function showToolsList() {
+            currentTool = null;
+
+            document.getElementById('toolsView').classList.remove('hidden');
+            document.getElementById('toolDisplay').classList.remove('visible');
+            document.getElementById('backBtn').classList.remove('visible');
+            document.getElementById('currentToolName').classList.remove('visible');
+
+            document.getElementById('toolIframe').src = '';
+        }
+
+        // Initialize
+        loadTools();
+    </script>
+
+
+
+</body></html>

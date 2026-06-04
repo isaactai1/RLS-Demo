@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search Strategy Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #F4F1EB; --bg2: #EAE6DD; --card: #FFFFFF;
+  --text: #2C2824; --text2: #5E574F; --text3: #9A9289;
+  --accent: #D4552A; --accent2: #B7421C; --accent-bg: rgba(212,85,42,0.08);
+  --or-color: #D48A0A; --or-bg: rgba(212,138,10,0.10);
+  --and-color: #6C4FC7; --and-bg: rgba(108,79,199,0.10);
+  --not-color: #C44040; --not-bg: rgba(196,64,64,0.10);
+  --ref-color: #1A8C6E; --ref-bg: rgba(26,140,110,0.10);
+  --term-bg: #F0ECE4; --term-border: #D8D2C6; --term-text: #3D3730;
+  --border: #DDD8CE;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06); --shadow-lg: 0 12px 40px rgba(0,0,0,0.1);
+  --radius: 12px; --radius-sm: 8px; --radius-xs: 5px;
+  --green: #1A8C6E; --green-bg: rgba(26,140,110,0.08);
+  --pd1:#2E86AB; --pd2:#1A8C6E; --pd3:#D4880A; --pd4:#9333EA; --pd5:#E8751A;
+}
+.dark {
+  --bg: #141416; --bg2: #1E1E22; --card: #242428;
+  --text: #ECE8E0; --text2: #A8A29A; --text3: #6A645C;
+  --accent: #F06A3F; --accent2: #FF8060; --accent-bg: rgba(240,106,63,0.12);
+  --or-color: #F0B840; --or-bg: rgba(240,184,64,0.12);
+  --and-color: #A78BFA; --and-bg: rgba(167,139,250,0.12);
+  --not-color: #F06060; --not-bg: rgba(240,96,96,0.12);
+  --ref-color: #50D4A8; --ref-bg: rgba(80,212,168,0.12);
+  --term-bg: #303034; --term-border: #404046; --term-text: #D0CCC4;
+  --border: #353538;
+  --shadow: 0 2px 8px rgba(0,0,0,0.2); --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+  --green: #50D4A8; --green-bg: rgba(80,212,168,0.10);
+  --pd1:#5DB8D8; --pd2:#50D4A8; --pd3:#F0B840; --pd4:#C084FC; --pd5:#FF9A5C;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+.header { background:var(--card); border-bottom:1px solid var(--border); padding:14px 20px; position:sticky; top:0; z-index:100; box-shadow:var(--shadow); }
+.header-inner { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-mark { width:34px; height:34px; border-radius:var(--radius-sm); background:linear-gradient(135deg,var(--accent),#E88A30); display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; }
+.logo-text { font-weight:800; font-size:17px; letter-spacing:-0.03em; }
+.logo-sub { font-size:11px; color:var(--text3); font-weight:500; }
+.header-btns { display:flex; gap:6px; flex-wrap:wrap; }
+
+.btn { font-family:'Nunito',sans-serif; font-size:13px; font-weight:600; padding:7px 13px; border-radius:var(--radius-xs); border:1px solid var(--border); background:var(--card); color:var(--text); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:background .15s,border-color .15s; white-space:nowrap; }
+.btn:hover { background:var(--bg2); }
+.btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.btn-primary:hover { background:var(--accent2); }
+.btn-danger { color:var(--not-color); }
+.btn-danger:hover { background:var(--not-bg); }
+.btn-sm { font-size:12px; padding:5px 9px; }
+.btn-xs { font-size:11px; padding:3px 7px; }
+.btn-icon { width:30px; height:30px; padding:0; border-radius:var(--radius-xs); display:flex; align-items:center; justify-content:center; font-size:13px; border:1px solid transparent; background:transparent; color:var(--text3); cursor:pointer; transition:background .15s,color .15s; }
+.btn-icon:hover { background:var(--bg2); color:var(--text); border-color:var(--border); }
+
+.main { padding:20px; }
+.section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.section-title .count { background:var(--bg2); padding:1px 8px; border-radius:10px; font-size:11px; font-weight:600; color:var(--text2); }
+
+.group-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:10px; box-shadow:var(--shadow); transition:border-color .15s; }
+.group-card:hover { border-color:var(--accent); }
+.group-card.is-combo { border-left:3px solid var(--and-color); }
+.gc-head { display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; user-select:none; }
+.gc-id { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; background:var(--accent-bg); color:var(--accent); padding:2px 7px; border-radius:4px; flex-shrink:0; }
+.gc-name { font-weight:700; font-size:14px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gc-name-input { font-family:'Nunito',sans-serif; font-weight:700; font-size:14px; border:none; background:var(--bg2); color:var(--text); padding:2px 8px; border-radius:var(--radius-xs); outline:none; width:100%; }
+.gc-toggle { color:var(--text3); font-size:11px; transition:transform .2s; }
+.gc-toggle.open { transform:rotate(180deg); }
+.gc-actions { display:flex; gap:2px; opacity:0; transition:opacity .15s; }
+.group-card:hover .gc-actions { opacity:1; }
+.gc-body { padding:0 14px 12px; }
+.gc-body.collapsed { display:none; }
+.gc-body-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.gc-body-left { min-width:0; }
+.gc-body-right { min-width:0; border-left:2px solid var(--border); padding-left:14px; }
+.gc-body-right .gc-preview { margin-top:0; padding-top:0; border-top:none; }
+
+.mode-toggle-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+.mode-toggle { display:inline-flex; border:1px solid var(--border); border-radius:var(--radius-xs); overflow:hidden; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+.mode-toggle span { padding:4px 12px; cursor:pointer; transition:background .15s,color .15s; color:var(--text3); background:var(--card); }
+.mode-toggle span.active { background:var(--accent-bg); color:var(--accent); }
+.mode-toggle span:first-child { border-right:1px solid var(--border); }
+
+.papers-field { display:inline-flex; align-items:center; gap:5px; margin-left:auto; }
+.papers-field label { font-size:11px; font-weight:600; color:var(--text3); white-space:nowrap; }
+.papers-input { width:80px; font-family:'JetBrains Mono',monospace; font-size:12px; padding:3px 8px; border:1px solid var(--border); border-radius:var(--radius-xs); background:var(--bg); color:var(--text); outline:none; text-align:right; }
+.papers-input:focus { border-color:var(--accent); }
+.papers-input::placeholder { color:var(--text3); }
+
+.terms-wrap { display:flex; flex-wrap:wrap; gap:6px; align-items:center; min-height:40px; padding:10px; background:var(--bg); border:1.5px dashed var(--border); border-radius:var(--radius-sm); transition:border-color .15s,background .15s; }
+.terms-wrap.drag-target { border-color:var(--accent); background:var(--accent-bg); }
+.term { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; background:var(--term-bg); border:1px solid var(--term-border); color:var(--term-text); cursor:grab; user-select:none; transition:border-color .15s; max-width:100%; }
+.term:hover { border-color:var(--accent); }
+.term:active { cursor:grabbing; }
+.term .remove { width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--text3); cursor:pointer; transition:background .15s,color .15s; flex-shrink:0; }
+.term .remove:hover { background:var(--not-bg); color:var(--not-color); }
+.term.dragging { opacity:.4; }
+.term-edit { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; border:none; background:transparent; color:var(--term-text); outline:none; min-width:40px; width:auto; }
+.op { display:inline-flex; align-items:center; padding:3px 8px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; cursor:pointer; user-select:none; text-transform:uppercase; letter-spacing:.03em; }
+.op.or { background:var(--or-bg); color:var(--or-color); }
+.op.and { background:var(--and-bg); color:var(--and-color); }
+.op.not { background:var(--not-bg); color:var(--not-color); }
+.ref-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; background:var(--ref-bg); border:1px solid transparent; color:var(--ref-color); cursor:pointer; user-select:none; transition:border-color .15s; }
+.ref-chip:hover { border-color:var(--ref-color); }
+.ref-chip .remove { width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--ref-color); cursor:pointer; transition:background .15s,color .15s; }
+.ref-chip .remove:hover { background:var(--not-bg); color:var(--not-color); }
+.paren-chip { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:28px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:17px; font-weight:800; color:var(--text2); background:var(--bg2); border:1px solid var(--border); cursor:grab; user-select:none; transition:border-color .15s,color .15s; padding:0 2px; }
+.paren-chip:hover { border-color:var(--not-color); color:var(--not-color); }
+.paren-chip:active { cursor:grabbing; }
+.paren-chip.dragging { opacity:.4; }
+.combo-op { display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; cursor:grab; user-select:none; text-transform:uppercase; letter-spacing:.03em; }
+.combo-op:active { cursor:grabbing; }
+.combo-op.dragging { opacity:.4; }
+.combo-op.or { background:var(--or-bg); color:var(--or-color); }
+.combo-op.and { background:var(--and-bg); color:var(--and-color); }
+.combo-op.not { background:var(--not-bg); color:var(--not-color); }
+.combo-op .remove { width:14px; height:14px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:8px; cursor:pointer; transition:background .15s,color .15s; margin-left:2px; opacity:.6; }
+.combo-op .remove:hover { opacity:1; background:rgba(0,0,0,.15); }
+.ref-chip.dragging { opacity:.4; }
+.combo-wrap { display:flex; flex-wrap:wrap; gap:6px; align-items:center; min-height:40px; padding:10px; background:var(--bg); border:1.5px dashed var(--border); border-radius:var(--radius-sm); transition:border-color .15s,background .15s; }
+.combo-wrap.drag-target { border-color:var(--accent); background:var(--accent-bg); }
+.add-term-row { display:flex; gap:6px; margin-top:8px; align-items:center; }
+.add-term-input { flex:1; font-family:'JetBrains Mono',monospace; font-size:13px; padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius-xs); background:var(--card); color:var(--text); outline:none; min-width:0; }
+.add-term-input:focus { border-color:var(--accent); }
+.add-term-input::placeholder { color:var(--text3); }
+.group-op-bar { display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+.group-op-bar label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; }
+.op-choice { padding:3px 10px; border-radius:4px; border:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; cursor:pointer; background:var(--card); color:var(--text3); transition:background .15s,color .15s,border-color .15s; text-transform:uppercase; }
+.op-choice.active-or { background:var(--or-bg); color:var(--or-color); border-color:var(--or-color); }
+.op-choice.active-and { background:var(--and-bg); color:var(--and-color); border-color:var(--and-color); }
+
+/* ─── Inline preview per group ─── */
+.gc-preview { margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+.gc-preview-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.gc-preview-label { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; }
+.gc-preview-string { font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.7; color:var(--text2); word-break:break-word; padding:8px 10px; background:var(--bg); border-radius:var(--radius-xs); }
+.gc-preview-string .hl-or { color:var(--or-color); font-weight:600; }
+.gc-preview-string .hl-and { color:var(--and-color); font-weight:600; }
+.gc-preview-string .hl-ref { color:var(--ref-color); font-weight:600; }
+.gc-preview-string .hl-wc { color:var(--accent); font-weight:600; }
+
+/* ─── Final section (bottom) ─── */
+.final-section { margin-top:24px; }
+.final-card { background:var(--card); border:2px solid var(--accent); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+.final-header { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--accent-bg); }
+.final-header h3 { font-size:13px; font-weight:700; color:var(--accent); }
+.final-body { padding:14px 16px; }
+.resolved-full { font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.8; color:var(--text2); word-break:break-word; padding:12px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border); }
+
+/* ─── Database Queries Section ─── */
+.db-section { margin-top:28px; }
+.db-select-bar { display:flex; align-items:flex-start; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.db-select-bar .sel-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; padding-top:7px; }
+.db-select-actions { display:flex; gap:4px; padding-top:3px; }
+.db-chips { display:flex; gap:5px; flex-wrap:wrap; flex:1; min-width:0; }
+.db-chip { padding:5px 11px; border-radius:20px; border:1.5px solid var(--border); font-family:'Nunito',sans-serif; font-size:11px; font-weight:700; cursor:pointer; background:var(--card); color:var(--text3); transition:all .15s; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; user-select:none; }
+.db-chip:hover { border-color:var(--text3); color:var(--text); }
+.db-chip.active { color:#fff; border-color:transparent; }
+.db-chip i { font-size:10px; }
+.db-chip .chk { width:13px; height:13px; border-radius:3px; border:1.5px solid currentColor; display:inline-flex; align-items:center; justify-content:center; font-size:7px; flex-shrink:0; }
+.db-chip.active .chk { background:rgba(255,255,255,0.25); border-color:rgba(255,255,255,0.5); }
+.db-panel { margin-bottom:16px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow); }
+.db-panel-head { padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:8px; color:#fff; flex-wrap:wrap; }
+.db-panel-head h3 { font-size:13px; font-weight:800; display:flex; align-items:center; gap:7px; letter-spacing:-.01em; }
+.db-panel-head h3 i { font-size:12px; opacity:.85; }
+.db-panel-actions { display:flex; gap:5px; flex-wrap:wrap; }
+.db-panel-actions .btn { color:rgba(255,255,255,0.9); border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.12); font-size:11px; padding:4px 10px; }
+.db-panel-actions .btn:hover { background:rgba(255,255,255,0.22); }
+.db-panel-body { padding:12px 14px; background:var(--card); }
+.db-panel-body .db-note { margin-bottom:10px; }
+.db-empty { text-align:center; padding:30px 20px; color:var(--text3); font-size:13px; }
+.db-empty i { font-size:28px; opacity:.25; display:block; margin-bottom:8px; }
+.db-all-footer { margin-top:4px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.db-note { margin-bottom:14px; padding:11px 14px; border-radius:var(--radius-sm); background:var(--bg2); border-left:3px solid var(--and-color); font-size:12px; color:var(--text2); line-height:1.7; }
+.db-note strong { color:var(--text); font-weight:700; }
+.db-note code { font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--card); padding:1px 5px; border-radius:3px; border:1px solid var(--border); color:var(--accent); }
+.db-fields { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+.db-field-tag { font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 7px; border-radius:3px; background:var(--and-bg); color:var(--and-color); }
+.db-query-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:8px; overflow:hidden; }
+.db-query-head { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--border); background:var(--bg); }
+.db-query-head .db-q-label { font-size:12px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden; }
+.db-query-head .db-q-label .gc-id { font-size:10px; }
+.db-query-body { padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.7; color:var(--text2); word-break:break-word; }
+.db-query-body .hl-or { color:var(--or-color); font-weight:600; }
+.db-query-body .hl-and { color:var(--and-color); font-weight:600; }
+.db-query-body .hl-ref { color:var(--ref-color); font-weight:600; }
+.db-query-body .hl-wc { color:var(--accent); font-weight:600; }
+.db-final-card { background:var(--card); border:2px solid var(--border); border-radius:var(--radius); margin-top:10px; overflow:hidden; }
+.db-final-head { padding:10px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--bg); }
+.db-final-head h4 { font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px; }
+.db-final-body { padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:var(--text2); word-break:break-word; }
+.db-footer { margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; }
+
+.ref-link-btn { font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 8px; border-radius:4px; background:var(--ref-bg); color:var(--ref-color); border:1px solid transparent; cursor:pointer; font-weight:600; transition:border-color .15s; }
+.ref-link-btn:hover { border-color:var(--ref-color); }
+
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px; opacity:0; visibility:hidden; transition:opacity .2s,visibility .2s; }
+.modal-bg.show { opacity:1; visibility:visible; }
+.modal-box { background:var(--card); border-radius:var(--radius); width:100%; max-width:520px; box-shadow:var(--shadow-lg); max-height:90vh; overflow-y:auto; }
+.modal-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.modal-head h3 { font-size:15px; font-weight:700; }
+.modal-content { padding:20px; }
+.modal-foot { padding:12px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; }
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:12px; font-weight:700; color:var(--text3); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+.form-group input,.form-group textarea { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-xs); background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; outline:none; }
+.form-group input:focus,.form-group textarea:focus { border-color:var(--accent); }
+.form-group textarea { min-height:140px; resize:vertical; line-height:1.6; }
+.form-hint { font-size:11px; color:var(--text3); margin-top:3px; }
+.export-pre { font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; max-height:300px; overflow:auto; white-space:pre-wrap; word-break:break-all; color:var(--text2); line-height:1.6; }
+
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--card); color:var(--text); border:1px solid var(--border); padding:9px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; box-shadow:var(--shadow-lg); opacity:0; transition:opacity .3s,transform .3s; z-index:2000; pointer-events:none; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+@media(max-width:900px) {
+  .gc-body-grid { grid-template-columns:1fr; }
+  .gc-body-right { border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:10px; margin-top:4px; }
+}
+@media(max-width:600px) {
+  .header { padding:10px 14px; }
+  .main { padding:14px; }
+  .gc-head { padding:8px 10px; }
+  .gc-body { padding:0 10px 10px; }
+  .terms-wrap { padding:8px; gap:5px; }
+  .term { font-size:12px; padding:4px 8px; }
+  .btn { font-size:12px; padding:6px 10px; }
+  .gc-preview-string { font-size:11px; }
+  .papers-field { margin-left:0; margin-top:4px; }
+  .mode-toggle-row { gap:6px; }
+  .db-chip { padding:4px 9px; font-size:10px; gap:3px; }
+  .db-panel-head { padding:8px 12px; }
+  .db-panel-head h3 { font-size:12px; }
+  .db-panel-body { padding:10px 12px; }
+  .db-panel-actions .btn { font-size:10px; padding:3px 8px; }
+  .db-query-body { font-size:11px; padding:8px 10px; }
+  .db-final-body { font-size:10px; padding:10px 12px; }
+  .db-note { font-size:11px; padding:9px 12px; }
+}
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+/* ─── Parenthesis Validation ─── */
+.paren-hl { font-weight:800; }
+.paren-d1 { color:var(--pd1); }
+.paren-d2 { color:var(--pd2); }
+.paren-d3 { color:var(--pd3); }
+.paren-d4 { color:var(--pd4); }
+.paren-d5 { color:var(--pd5); }
+.paren-err { color:#DC2626; background:rgba(220,38,38,0.18); border-radius:2px; padding:0 2px; animation:paren-pulse 1.5s ease-in-out infinite; }
+.dark .paren-err { color:#F87171; background:rgba(248,113,113,0.2); }
+@keyframes paren-pulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+.paren-badge { display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; padding:2px 9px; border-radius:12px; white-space:nowrap; }
+.paren-badge.ok { background:var(--green-bg); color:var(--green); }
+.paren-badge.bad { background:var(--not-bg); color:var(--not-color); }
+.paren-badge i { font-size:9px; }
+.paren-badge b { font-size:12px; }
+.paren-detail { margin-top:6px; padding:8px 12px; border-radius:var(--radius-xs); background:var(--not-bg); border-left:3px solid var(--not-color); font-size:11px; color:var(--not-color); line-height:1.7; }
+.paren-detail code { font-family:'JetBrains Mono',monospace; font-weight:700; background:rgba(196,64,64,0.12); padding:0 4px; border-radius:2px; }
+.paren-detail i { margin-right:4px; }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark"><i class="fas fa-dna"></i></div>
+      <div><div class="logo-text">Search Strategy Builder</div><div class="logo-sub">Interactive Boolean query workspace</div></div>
+    </div>
+    <div class="header-btns">
+      <button class="btn" onclick="showImport()"><i class="fas fa-file-import"></i> Import</button>
+      <button class="btn" onclick="showExport()"><i class="fas fa-file-export"></i> Export</button>
+      <button class="btn" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+      <button class="btn btn-primary" onclick="addGroup()"><i class="fas fa-plus"></i> New Group</button>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="section-title">Concept Groups <span class="count" id="groupCount">0</span></div>
+  <div id="groupList"></div>
+  <div class="final-section" id="finalSection" style="display:none">
+    <div class="section-title"><i class="fas fa-flag-checkered" style="color:var(--accent)"></i> Final Resolved String</div>
+    <div class="final-card">
+      <div class="final-header">
+        <h3 id="finalLabel">Final Output</h3>
+        <button class="btn btn-sm" onclick="copyFinal()"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+      <div class="final-body">
+        <div class="resolved-full" id="finalString"></div>
+      </div>
+    </div>
+  </div>
+  <div class="db-section" id="dbSection" style="display:none">
+    <div class="section-title"><i class="fas fa-database" style="color:var(--and-color)"></i> Database-Specific Queries</div>
+    <div id="dbSelectBar"></div>
+    <div id="dbPanels"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="confirmModal"><div class="modal-box" style="max-width:400px"><div class="modal-head"><h3 id="confirmTitle">Confirm</h3><button class="btn-icon" onclick="hideModal('confirmModal')"><i class="fas fa-times"></i></button></div><div class="modal-content"><p id="confirmMsg" style="color:var(--text2);font-size:14px;line-height:1.6"></p></div><div class="modal-foot"><button class="btn" onclick="hideModal('confirmModal')">Cancel</button><button class="btn btn-primary" id="confirmOk">Confirm</button></div></div></div>
+<div class="modal-bg" id="importModal"><div class="modal-box"><div class="modal-head"><h3>Import CSV</h3><button class="btn-icon" onclick="hideModal('importModal')"><i class="fas fa-times"></i></button></div><div class="modal-content"><div class="form-group"><label>CSV Content</label><textarea id="importText" placeholder="ID,Concept,String,Papers&#10;1,Parent,(parent* OR caregiv*),120"></textarea><div class="form-hint">Header: ID, Concept, String, Papers (optional). Replaces all current groups.</div></div></div><div class="modal-foot"><button class="btn" onclick="hideModal('importModal')">Cancel</button><button class="btn btn-primary" onclick="doImport()"><i class="fas fa-file-import"></i> Import</button></div></div></div>
+<div class="modal-bg" id="exportModal"><div class="modal-box"><div class="modal-head"><h3>Export CSV</h3><button class="btn-icon" onclick="hideModal('exportModal')"><i class="fas fa-times"></i></button></div><div class="modal-content"><div class="export-pre" id="exportContent"></div></div><div class="modal-foot"><button class="btn" onclick="hideModal('exportModal')">Close</button><button class="btn" onclick="copyExport()"><i class="fas fa-copy"></i> Copy</button><button class="btn btn-primary" onclick="downloadExport()"><i class="fas fa-download"></i> Download</button></div></div></div>
+<div class="modal-bg" id="refModal"><div class="modal-box" style="max-width:380px"><div class="modal-head"><h3>Insert Group Reference</h3><button class="btn-icon" onclick="hideModal('refModal')"><i class="fas fa-times"></i></button></div><div class="modal-content"><p style="font-size:13px;color:var(--text2);margin-bottom:12px">Click a group to insert a reference:</p><div id="refOptions" style="display:flex;flex-wrap:wrap;gap:6px"></div></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark');
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(e){document.documentElement.classList.toggle('dark',e.matches);});
+
+var groups=[];var nextId=1;
+
+function parseCSV(csv){
+  var lines=csv.trim().split('\n'),result=[],start=0;
+  var hdr=lines[0].trim().toLowerCase();
+  if(hdr.startsWith('id')&&hdr.includes('concept'))start=1;
+  for(var i=start;i<lines.length;i++){
+    var line=lines[i].trim();if(!line)continue;
+    var c1=line.indexOf(',');if(c1===-1)continue;
+    var c2=line.indexOf(',',c1+1);if(c2===-1)continue;
+    var id=parseInt(line.substring(0,c1).trim());
+    var name=line.substring(c1+1,c2).trim();
+    var rest=line.substring(c2+1).trim();
+    // Try to find papers count (last comma-separated number)
+    var papers='';
+    var c3=rest.lastIndexOf(',');
+    if(c3!==-1){
+      var maybePapers=rest.substring(c3+1).trim();
+      if(/^\d+$/.test(maybePapers)||maybePapers===''){
+        papers=maybePapers;
+        rest=rest.substring(0,c3).trim();
+      }
+    }
+    if(rest.endsWith(','))rest=rest.slice(0,-1).trim();
+    if(isNaN(id)||!name)continue;
+    result.push({id:id,name:name,rawString:rest,papers:papers});
+  }
+  return result;
+}
+
+function rawToGroup(raw){
+  var id=raw.id,name=raw.name,rawString=raw.rawString,papers=raw.papers||'';
+  var hasRefs=/#\d+/.test(rawString);
+  var stripped=rawString.replace(/#\d+/g,'').replace(/\(|\)/g,'').replace(/\b(AND|OR|NOT)\b/gi,'').trim();
+  var isCombo=hasRefs&&stripped.length===0;
+  if(isCombo){
+    var parts=[],rawTokens=rawString.match(/[()]|#\d+|\b(?:AND|OR|NOT)\b/gi)||[];
+    for(var j=0;j<rawTokens.length;j++){
+      var tok=rawTokens[j];
+      if(tok==='(')parts.push({type:'open'});
+      else if(tok===')')parts.push({type:'close'});
+      else if(/^#(\d+)$/.test(tok))parts.push({type:'ref',value:parseInt(tok.substring(1))});
+      else if(/^(AND|OR|NOT)$/i.test(tok))parts.push({type:'op',value:tok.toUpperCase()});
+    }
+    return{id:id,name:name,type:'combo',parts:parts,papers:papers};
+  }else{
+    var opMatch=rawString.match(/\b(AND)\b/i);
+    var operator=opMatch?'AND':'OR';
+    var inner=rawString.replace(/^\(+/,'').replace(/\)+$/,'').trim();
+    var opRegex=operator==='OR'?/\bOR\b/gi:/\bAND\b/gi;
+    var terms=inner.split(opRegex).map(function(t){return t.trim();}).filter(function(t){return t;});
+    return{id:id,name:name,type:'terms',terms:terms,operator:operator,papers:papers};
+  }
+}
+
+function groupToString(g){
+  if(g.type==='terms'){
+    if(g.terms.length===0)return'';
+    return'('+g.terms.join(' '+g.operator+' ')+')';
+  }else{
+    var toks=g.parts.map(function(p){
+      if(p.type==='ref')return'#'+p.value;
+      if(p.type==='open')return'(';
+      if(p.type==='close')return')';
+      return p.value;
+    }),out='';
+    for(var i=0;i<toks.length;i++){
+      if(i>0&&toks[i]!==')'&&toks[i-1]!=='(')out+=' ';
+      out+=toks[i];
+    }
+    return out;
+  }
+}
+
+function resolveString(str,visited){
+  if(!visited)visited=new Set();
+  return str.replace(/#(\d+)/g,function(m,num){
+    var id=parseInt(num);if(visited.has(id))return m;
+    var g=groups.find(function(x){return x.id===id;});if(!g)return m;
+    visited.add(id);var s=groupToString(g);
+    return'('+resolveString(s,new Set(visited))+')';
+  });
+}
+
+function highlight(str){
+  var s=str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s=s.replace(/(#\d+)/g,'<span class="hl-ref">$1</span>');
+  s=s.replace(/\b(AND)\b/gi,'<span class="hl-and">$1</span>');
+  s=s.replace(/\b(OR)\b/gi,'<span class="hl-or">$1</span>');
+  s=s.replace(/\b(NOT)\b/gi,'<span class="hl-and">$1</span>');
+  s=s.replace(/(\*)/g,'<span class="hl-wc">$1</span>');
+  return s;
+}
+
+/* ═══ Parenthesis Validation ═══ */
+function analyzeParens(str){
+  if(!str)return{balanced:true,opens:0,closes:0,pairs:0,unmatchedOpens:0,unmatchedCloses:0,parenInfo:{}};
+  var stack=[],parenInfo={},opens=0,closes=0,pairs=0;
+  for(var i=0;i<str.length;i++){
+    if(str[i]==='('){opens++;stack.push(i);parenInfo[i]={type:'open',depth:stack.length,matched:false};}
+    else if(str[i]===')'){closes++;
+      if(stack.length>0){var oi=stack.pop();var d=stack.length+1;parenInfo[oi].matched=true;parenInfo[oi].depth=d;parenInfo[i]={type:'close',depth:d,matched:true};pairs++;}
+      else{parenInfo[i]={type:'close',depth:0,matched:false};}
+    }
+  }
+  while(stack.length>0)parenInfo[stack.pop()].matched=false;
+  return{balanced:opens===closes,opens:opens,closes:closes,pairs:pairs,unmatchedOpens:opens-pairs,unmatchedCloses:closes-pairs,parenInfo:parenInfo};
+}
+function highlightSegment(seg){
+  var s=seg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s=s.replace(/(#\d+)/g,'<span class="hl-ref">$1</span>');
+  s=s.replace(/\b(AND)\b/gi,'<span class="hl-and">$1</span>');
+  s=s.replace(/\b(OR)\b/gi,'<span class="hl-or">$1</span>');
+  s=s.replace(/\b(NOT)\b/gi,'<span class="hl-and">$1</span>');
+  s=s.replace(/(\*)/g,'<span class="hl-wc">$1</span>');
+  return s;
+}
+function highlightWithParens(str){
+  if(!str)return'<em style="opacity:.5">empty</em>';
+  var info=analyzeParens(str),result='',seg='';
+  for(var i=0;i<str.length;i++){
+    var ch=str[i];
+    if(ch==='('||ch===')'){
+      if(seg){result+=highlightSegment(seg);seg='';}
+      var p=info.parenInfo[i];
+      if(p&&p.matched){var di=((p.depth-1)%5)+1;result+='<span class="paren-hl paren-d'+di+'" title="Depth '+p.depth+'">'+ch+'</span>';}
+      else{result+='<span class="paren-hl paren-err" title="Unmatched">'+ch+'</span>';}
+    }else{seg+=ch;}
+  }
+  if(seg)result+=highlightSegment(seg);
+  return result;
+}
+function parenBadge(info){
+  if(info.opens===0&&info.closes===0)return'';
+  if(info.balanced)return'<span class="paren-badge ok"><i class="fas fa-check-circle"></i> <b>(</b>'+info.opens+' <b>)</b>'+info.closes+'</span>';
+  var msg='<b>(</b>'+info.opens+' <b>)</b>'+info.closes;
+  var details=[];
+  if(info.unmatchedCloses>0)details.push(info.unmatchedCloses+' extra <b>)</b>');
+  if(info.unmatchedOpens>0)details.push(info.unmatchedOpens+' unclosed <b>(</b>');
+  msg+=' &mdash; '+details.join(', ');
+  return'<span class="paren-badge bad"><i class="fas fa-exclamation-triangle"></i> '+msg+'</span>';
+}
+function parenDetail(info){
+  if(info.balanced)return'';
+  var msgs=[];
+  if(info.unmatchedCloses>0)msgs.push('<strong>'+info.unmatchedCloses+' extra closing <code>)</code></strong> without a matching opening parenthesis');
+  if(info.unmatchedOpens>0)msgs.push('<strong>'+info.unmatchedOpens+' unclosed <code>(</code></strong> without a matching closing parenthesis');
+  msgs.push('Unmatched parentheses are highlighted in <span style="color:#DC2626;font-weight:700">red</span> above');
+  return'<div class="paren-detail"><i class="fas fa-exclamation-triangle"></i> '+msgs.join(' &middot; ')+'</div>';
+}
+
+function render(){
+  var list=document.getElementById('groupList');
+  document.getElementById('groupCount').textContent=groups.length;
+  if(groups.length===0){
+    list.innerHTML='<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fas fa-layer-group" style="font-size:36px;opacity:.3;margin-bottom:10px;display:block"></i><p style="font-size:14px;margin-bottom:14px">No groups yet.</p><button class="btn btn-primary" onclick="addGroup()"><i class="fas fa-plus"></i> New Group</button></div>';
+    document.getElementById('finalSection').style.display='none';
+    document.getElementById('dbSection').style.display='none';
+    return;
+  }
+  list.innerHTML=groups.map(function(g){
+    var isCombo=g.type==='combo';
+    var str=groupToString(g);
+    var hasRef=/#\d+/.test(str);
+    var pInfo=analyzeParens(str);
+    var previewHtml='<div class="gc-preview">';
+    previewHtml+='<div class="gc-preview-bar"><span style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><span class="gc-preview-label">Output</span>'+parenBadge(pInfo)+'</span><button class="btn btn-xs" onclick="copyGroupString('+g.id+')"><i class="fas fa-copy"></i> Copy</button></div>';
+    previewHtml+='<div class="gc-preview-string">'+(str?highlightWithParens(str):'<em style="opacity:.5">empty</em>')+'</div>';
+    if(!pInfo.balanced)previewHtml+=parenDetail(pInfo);
+    if(hasRef){
+      var resolvedStr=resolveString(str);var rInfo=analyzeParens(resolvedStr);
+      previewHtml+='<div class="gc-preview-bar" style="margin-top:6px"><span style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><span class="gc-preview-label" style="color:var(--green)">Resolved</span>'+parenBadge(rInfo)+'</span><button class="btn btn-xs" onclick="copyGroupResolved('+g.id+')"><i class="fas fa-copy"></i> Copy</button></div>';
+      previewHtml+='<div class="gc-preview-string" style="background:var(--green-bg);border:1px solid var(--green)">'+highlightWithParens(resolvedStr)+'</div>';
+      if(!rInfo.balanced)previewHtml+=parenDetail(rInfo);
+    }
+    previewHtml+='</div>';
+    return'<div class="group-card '+(isCombo?'is-combo':'')+'" data-gid="'+g.id+'">'+
+      '<div class="gc-head" onclick="toggleCollapse('+g.id+')">'+
+        '<span class="gc-id">#'+g.id+'</span>'+
+        '<span class="gc-name" id="gname-'+g.id+'" ondblclick="startRename(event,'+g.id+')">'+esc(g.name)+'</span>'+
+        '<div class="gc-actions">'+
+          '<button class="btn-icon" onclick="event.stopPropagation();moveGroup('+g.id+',-1)" title="Move up"><i class="fas fa-arrow-up"></i></button>'+
+          '<button class="btn-icon" onclick="event.stopPropagation();moveGroup('+g.id+',1)" title="Move down"><i class="fas fa-arrow-down"></i></button>'+
+          '<button class="btn-icon" onclick="event.stopPropagation();duplicateGroup('+g.id+')" title="Duplicate"><i class="fas fa-clone"></i></button>'+
+          '<button class="btn-icon btn-danger" onclick="event.stopPropagation();deleteGroup('+g.id+')" title="Delete"><i class="fas fa-trash"></i></button>'+
+        '</div>'+
+        '<span class="gc-toggle" id="gtoggle-'+g.id+'"><i class="fas fa-chevron-down"></i></span>'+
+      '</div>'+
+      '<div class="gc-body" id="gbody-'+g.id+'">'+
+        renderModeToggle(g)+
+        '<div class="gc-body-grid">'+
+          '<div class="gc-body-left">'+(isCombo?renderCombo(g):renderTerms(g))+'</div>'+
+          '<div class="gc-body-right">'+previewHtml+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  renderFinal();
+  renderDbSection();
+}
+
+function renderModeToggle(g){
+  var isTerms=g.type==='terms';
+  return'<div class="mode-toggle-row">'+
+    '<div class="mode-toggle">'+
+      '<span class="'+(isTerms?'active':'')+'" onclick="setMode('+g.id+',\'terms\')"><i class="fas fa-tags"></i> Terms</span>'+
+      '<span class="'+(!isTerms?'active':'')+'" onclick="setMode('+g.id+',\'combo\')"><i class="fas fa-link"></i> Combo</span>'+
+    '</div>'+
+    '<div class="papers-field">'+
+      '<label><i class="fas fa-file-alt"></i> Papers:</label>'+
+      '<input type="text" class="papers-input" id="papers-'+g.id+'" value="'+esc(g.papers||'')+'" placeholder="—" oninput="setPapers('+g.id+',this.value)" onclick="event.stopPropagation()">'+
+    '</div>'+
+  '</div>';
+}
+
+function renderTerms(g){
+  var chips=g.terms.map(function(t,ti){
+    var out='';
+    if(ti>0)out+='<span class="op '+g.operator.toLowerCase()+'" onclick="cycleGroupOp('+g.id+')" title="Click to toggle">'+g.operator+'</span>';
+    out+='<span class="term" draggable="true" ondragstart="termDragStart(event,'+g.id+','+ti+')" ondragend="termDragEnd(event)"><span ondblclick="editTerm(event,'+g.id+','+ti+')">'+esc(t)+'</span><span class="remove" onclick="removeTerm('+g.id+','+ti+')"><i class="fas fa-times"></i></span></span>';
+    return out;
+  }).join('');
+  return'<div class="terms-wrap" id="tw-'+g.id+'" ondragover="termDragOver(event)" ondragleave="termDragLeave(event)" ondrop="termDrop(event,'+g.id+')">'+chips+(g.terms.length===0?'<span style="color:var(--text3);font-size:12px">Drop terms here or add below</span>':'')+'</div>'+
+  '<div class="add-term-row"><input class="add-term-input" id="addInput-'+g.id+'" placeholder="Type term & press Enter..." onkeydown="if(event.key===\'Enter\')addTerm('+g.id+')"><button class="btn btn-sm" onclick="addTerm('+g.id+')"><i class="fas fa-plus"></i></button></div>'+
+  '<div class="group-op-bar"><label>Join with:</label><span class="op-choice '+(g.operator==='OR'?'active-or':'')+'" onclick="setGroupOp('+g.id+',\'OR\')">OR</span><span class="op-choice '+(g.operator==='AND'?'active-and':'')+'" onclick="setGroupOp('+g.id+',\'AND\')">AND</span></div>';
+}
+
+function renderCombo(g){
+  var dAttr=' draggable="true" ondragstart="comboDragStart(event,'+g.id+',{pi})" ondragend="comboDragEnd(event)"';
+  var chips=g.parts.map(function(p,pi){
+    var da=dAttr.replace('{pi}',pi);
+    if(p.type==='ref'){
+      var refG=groups.find(function(x){return x.id===p.value;});
+      var label=refG?refG.name:'?';
+      return'<span class="ref-chip"'+da+' data-pi="'+pi+'" title="Drag to reorder · Click to go to #'+p.value+'" onclick="scrollToGroup('+p.value+')">#'+p.value+' <small>'+esc(label)+'</small><span class="remove" onclick="event.stopPropagation();removeCombopart('+g.id+','+pi+')"><i class="fas fa-times"></i></span></span>';
+    }else if(p.type==='open'||p.type==='close'){
+      return'<span class="paren-chip"'+da+' data-pi="'+pi+'" title="Drag to reorder · Click to remove"  onclick="removeCombopart('+g.id+','+pi+')">'+(p.type==='open'?'(':')')+'</span>';
+    }else{
+      return'<span class="combo-op '+p.value.toLowerCase()+'"'+da+' data-pi="'+pi+'" title="Drag to reorder · Click to toggle"><span onclick="cycleComboOp('+g.id+','+pi+')">'+p.value+'</span><span class="remove" onclick="event.stopPropagation();removeCombopart('+g.id+','+pi+')"><i class="fas fa-times"></i></span></span>';
+    }
+  }).join('');
+  return'<div class="combo-wrap" id="tw-'+g.id+'" ondragover="comboDragOver(event)" ondragleave="comboDragLeave(event)" ondrop="comboDrop(event,'+g.id+')">'+chips+(g.parts.length===0?'<span style="color:var(--text3);font-size:12px">Add group references below</span>':'')+'</div>'+
+  '<div class="add-term-row"><button class="btn btn-sm" onclick="showRefPicker('+g.id+')"><i class="fas fa-link"></i> Add Reference</button><button class="btn btn-sm" onclick="addComboOp('+g.id+',\'AND\')"><span style="color:var(--and-color)">+ AND</span></button><button class="btn btn-sm" onclick="addComboOp('+g.id+',\'OR\')"><span style="color:var(--or-color)">+ OR</span></button><button class="btn btn-sm" onclick="addComboOp('+g.id+',\'NOT\')"><span style="color:var(--not-color)">+ NOT</span></button><button class="btn btn-sm" onclick="addComboParen('+g.id+',\'open\')"><span style="font-weight:800;color:var(--text2)">(</span></button><button class="btn btn-sm" onclick="addComboParen('+g.id+',\'close\')"><span style="font-weight:800;color:var(--text2)">)</span></button></div>';
+}
+
+function renderFinal(){
+  var sec=document.getElementById('finalSection');
+  if(groups.length===0){sec.style.display='none';return;}
+  sec.style.display='';
+  var last=groups[groups.length-1];
+  var fStr=groupToString(last);
+  var resolved=resolveString(fStr);
+  var fInfo=analyzeParens(resolved);
+  document.getElementById('finalLabel').innerHTML='Final Output (#'+last.id+' — '+esc(last.name)+') '+parenBadge(fInfo);
+  document.getElementById('finalString').innerHTML=highlightWithParens(resolved)+(!fInfo.balanced?parenDetail(fInfo):'');
+}
+
+function copyGroupString(gid){
+  var g=groups.find(function(x){return x.id===gid;});
+  if(!g)return;
+  var str=groupToString(g);
+  if(navigator.clipboard){navigator.clipboard.writeText(str);toast('Copied #'+g.id+' string');}
+}
+
+function copyGroupResolved(gid){
+  var g=groups.find(function(x){return x.id===gid;});
+  if(!g)return;
+  var str=resolveString(groupToString(g));
+  if(navigator.clipboard){navigator.clipboard.writeText(str);toast('Copied #'+g.id+' resolved');}
+}
+
+function setPapers(gid,val){
+  var g=groups.find(function(x){return x.id===gid;});
+  if(g)g.papers=val.trim();
+  // Don't re-render, just update data
+}
+
+function setMode(gid,mode){
+  var g=groups.find(function(x){return x.id===gid;});
+  if(!g||g.type===mode)return;
+  if(mode==='combo'){g.type='combo';g.parts=[];delete g.terms;delete g.operator;}
+  else{g.type='terms';g.terms=[];g.operator='OR';delete g.parts;}
+  render();
+}
+
+function addGroup(){
+  var id=nextId++;
+  groups.push({id:id,name:'New Concept',type:'terms',terms:[],operator:'OR',papers:''});
+  render();toast('Group #'+id+' created');
+  setTimeout(function(){var el=document.querySelector('[data-gid="'+id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},50);
+}
+
+function deleteGroup(id){
+  var g=groups.find(function(x){return x.id===id;});if(!g)return;
+  showConfirm('Delete Group','Delete <strong>#'+g.id+' — '+esc(g.name)+'</strong>?',function(){
+    groups=groups.filter(function(x){return x.id!==id;});render();toast('Group deleted');
+  });
+}
+
+function duplicateGroup(id){
+  var g=groups.find(function(x){return x.id===id;});if(!g)return;
+  var idx=groups.indexOf(g),nid=nextId++;
+  var clone=JSON.parse(JSON.stringify(g));clone.id=nid;clone.name=g.name+' (copy)';
+  groups.splice(idx+1,0,clone);render();toast('Duplicated as #'+nid);
+}
+
+function moveGroup(id,dir){
+  var idx=groups.findIndex(function(x){return x.id===id;});
+  var ni=idx+dir;if(ni<0||ni>=groups.length)return;
+  var tmp=groups[idx];groups[idx]=groups[ni];groups[ni]=tmp;render();
+}
+
+function toggleCollapse(id){
+  var body=document.getElementById('gbody-'+id);
+  var toggle=document.getElementById('gtoggle-'+id);
+  if(body)body.classList.toggle('collapsed');
+  if(toggle)toggle.classList.toggle('open');
+}
+
+function startRename(e,id){
+  e.stopPropagation();
+  var el=document.getElementById('gname-'+id);
+  var g=groups.find(function(x){return x.id===id;});if(!el||!g)return;
+  var input=document.createElement('input');input.className='gc-name-input';input.value=g.name;
+  input.onclick=function(ev){ev.stopPropagation();};
+  input.onblur=function(){finishRename(id,input.value);};
+  input.onkeydown=function(ev){if(ev.key==='Enter')input.blur();if(ev.key==='Escape'){input.value=g.name;input.blur();}ev.stopPropagation();};
+  el.replaceWith(input);input.focus();input.select();
+}
+function finishRename(id,val){var g=groups.find(function(x){return x.id===id;});if(g&&val.trim())g.name=val.trim();render();}
+
+function addTerm(gid){
+  var input=document.getElementById('addInput-'+gid);if(!input)return;
+  var val=input.value.trim();if(!val)return;
+  var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='terms')return;
+  var opRegex=g.operator==='OR'?/\bOR\b/gi:/\bAND\b/gi;
+  var newT=val.split(opRegex).map(function(t){return t.trim();}).filter(function(t){return t;});
+  g.terms.push.apply(g.terms,newT);input.value='';render();
+}
+function removeTerm(gid,ti){var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='terms')return;g.terms.splice(ti,1);render();}
+
+function editTerm(e,gid,ti){
+  e.stopPropagation();var g=groups.find(function(x){return x.id===gid;});if(!g)return;
+  var span=e.target,input=document.createElement('input');
+  input.className='term-edit';input.value=g.terms[ti];
+  input.style.width=Math.max(60,g.terms[ti].length*8+20)+'px';
+  input.onblur=function(){var v=input.value.trim();if(v){g.terms[ti]=v;}else{g.terms.splice(ti,1);}render();};
+  input.onkeydown=function(ev){if(ev.key==='Enter')input.blur();if(ev.key==='Escape'){input.value=g.terms[ti];input.blur();}ev.stopPropagation();};
+  span.replaceWith(input);input.focus();input.select();
+}
+function setGroupOp(gid,op){var g=groups.find(function(x){return x.id===gid;});if(g&&g.type==='terms'){g.operator=op;render();}}
+function cycleGroupOp(gid){var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='terms')return;g.operator=g.operator==='OR'?'AND':'OR';render();}
+
+var dragData=null;
+function termDragStart(e,gid,ti){dragData={gid:gid,ti:ti};e.target.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function termDragEnd(e){e.target.classList.remove('dragging');}
+function termDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-target');}
+function termDragLeave(e){e.currentTarget.classList.remove('drag-target');}
+function termDrop(e,targetGid){
+  e.preventDefault();e.currentTarget.classList.remove('drag-target');if(!dragData)return;
+  var srcG=groups.find(function(x){return x.id===dragData.gid;}),dstG=groups.find(function(x){return x.id===targetGid;});
+  if(!srcG||!dstG||srcG.type!=='terms'||dstG.type!=='terms')return;
+  var term=srcG.terms.splice(dragData.ti,1)[0];dstG.terms.push(term);dragData=null;render();toast('Term moved');
+}
+
+var comboDragData=null;
+function comboDragStart(e,gid,pi){comboDragData={gid:gid,pi:pi};e.target.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','');}
+function comboDragEnd(e){e.target.classList.remove('dragging');comboDragData=null;}
+function comboDragOver(e){
+  e.preventDefault();e.currentTarget.classList.add('drag-target');
+  if(!comboDragData)return;
+  var wrap=e.currentTarget;var children=Array.prototype.slice.call(wrap.children);
+  var mouseX=e.clientX;
+  var closest=null,closestDist=Infinity;
+  children.forEach(function(child,i){
+    if(child.classList.contains('dragging'))return;
+    var rect=child.getBoundingClientRect();var center=rect.left+rect.width/2;
+    var dist=Math.abs(mouseX-center);
+    if(dist<closestDist){closestDist=dist;closest={el:child,idx:i,after:mouseX>center};}
+  });
+  children.forEach(function(c){c.style.removeProperty('margin-left');c.style.removeProperty('margin-right');});
+  if(closest){
+    if(closest.after)closest.el.style.marginRight='20px';
+    else closest.el.style.marginLeft='20px';
+  }
+}
+function comboDragLeave(e){
+  e.currentTarget.classList.remove('drag-target');
+  Array.prototype.slice.call(e.currentTarget.children).forEach(function(c){c.style.removeProperty('margin-left');c.style.removeProperty('margin-right');});
+}
+function comboDrop(e,targetGid){
+  e.preventDefault();e.currentTarget.classList.remove('drag-target');
+  Array.prototype.slice.call(e.currentTarget.children).forEach(function(c){c.style.removeProperty('margin-left');c.style.removeProperty('margin-right');});
+  if(!comboDragData)return;
+  var g=groups.find(function(x){return x.id===comboDragData.gid;});
+  var tg=groups.find(function(x){return x.id===targetGid;});
+  if(!g||!tg||g.type!=='combo'||tg.type!=='combo')return;
+  var wrap=e.currentTarget;var children=Array.prototype.slice.call(wrap.children);
+  var mouseX=e.clientX;var dropIdx=tg.parts.length;
+  for(var i=0;i<children.length;i++){
+    var rect=children[i].getBoundingClientRect();
+    if(mouseX<rect.left+rect.width/2){dropIdx=parseInt(children[i].getAttribute('data-pi'))||i;break;}
+  }
+  var part;
+  if(g.id===tg.id){
+    part=g.parts.splice(comboDragData.pi,1)[0];
+    if(dropIdx>comboDragData.pi)dropIdx--;
+    g.parts.splice(dropIdx,0,part);
+  }else{
+    part=g.parts.splice(comboDragData.pi,1)[0];
+    tg.parts.splice(dropIdx,0,part);
+  }
+  comboDragData=null;render();toast('Moved');
+}
+
+var refPickerTarget=null;
+function showRefPicker(gid){
+  refPickerTarget=gid;
+  document.getElementById('refOptions').innerHTML=groups.filter(function(x){return x.id!==gid;}).map(function(x){
+    return'<button class="ref-link-btn" onclick="addRefToCombo('+x.id+')">#'+x.id+' '+esc(x.name)+'</button>';
+  }).join('');showModal('refModal');
+}
+function addRefToCombo(refId){if(!refPickerTarget)return;var g=groups.find(function(x){return x.id===refPickerTarget;});if(!g||g.type!=='combo')return;g.parts.push({type:'ref',value:refId});hideModal('refModal');render();}
+function addComboOp(gid,op){var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='combo')return;g.parts.push({type:'op',value:op});render();}
+function addComboParen(gid,type){var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='combo')return;g.parts.push({type:type});render();}
+function removeCombopart(gid,pi){var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='combo')return;g.parts.splice(pi,1);render();}
+function cycleComboOp(gid,pi){var g=groups.find(function(x){return x.id===gid;});if(!g||g.type!=='combo')return;var ops=['AND','OR','NOT'];var curr=g.parts[pi].value;g.parts[pi].value=ops[(ops.indexOf(curr)+1)%ops.length];render();}
+function scrollToGroup(id){var el=document.querySelector('[data-gid="'+id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}
+
+function showImport(){document.getElementById('importText').value='';showModal('importModal');}
+function doImport(){
+  var text=document.getElementById('importText').value;if(!text.trim()){toast('Paste CSV first');return;}
+  var raws=parseCSV(text);if(raws.length===0){toast('Could not parse rows');return;}
+  showConfirm('Replace All?','Replace all '+groups.length+' groups with '+raws.length+' imported rows?',function(){loadRawData(raws);hideModal('importModal');toast(raws.length+' groups imported');});
+}
+function showExport(){document.getElementById('exportContent').textContent=toCSV();showModal('exportModal');}
+
+function toCSV(){
+  var csv='ID,Concept,String,Papers\n';
+  groups.forEach(function(g){
+    var str=groupToString(g);
+    var name=g.name.indexOf(',')!==-1?'"'+g.name+'"':g.name;
+    var sEsc=str.indexOf(',')!==-1?'"'+str.replace(/"/g,'""')+'"':str;
+    csv+=g.id+','+name+','+sEsc+','+(g.papers||'')+'\n';
+  });
+  return csv;
+}
+
+function copyExport(){if(navigator.clipboard){navigator.clipboard.writeText(toCSV());toast('Copied!');}}
+function downloadExport(){
+  var blob=new Blob([toCSV()],{type:'text/csv'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='Search_Strategies.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('CSV downloaded!');
+}
+function copyFinal(){
+  if(groups.length===0){toast('No groups');return;}
+  var last=groups[groups.length-1];var resolved=resolveString(groupToString(last));
+  if(navigator.clipboard){navigator.clipboard.writeText(resolved);toast('Final string copied!');}
+}
+
+/* ═══ Database-Specific Queries ═══ */
+var databases=[
+  {key:'pubmed',name:'PubMed',icon:'fa-book-medical',col:'#2E86AB',
+   note:'<code>?</code> → <code>-</code> (PubMed has no single-char wildcards). <code>[tiab]</code> auto-applied to <strong>each term</strong>.',
+   fields:['[tiab]','[tw]','[MeSH Terms]','[Title]','[Text Word]']},
+  {key:'scopus',name:'Scopus',icon:'fa-microscope',col:'#E8751A',
+   note:'<code>NOT</code> → <code>AND NOT</code>. Per-group: <code>TITLE-ABS-KEY()</code> per group. Final: entire expression wrapped in one <code>TITLE-ABS-KEY()</code>.',
+   fields:['TITLE-ABS-KEY()','TITLE()','ABS()','KEY()','AUTHKEY()']},
+  {key:'wos',name:'Web of Science',icon:'fa-globe',col:'#5D3587',
+   note:'Per-group: <code>TS=()</code> per group. Final: entire expression wrapped in one <code>TS=()</code>. <code>$</code> = zero or one character. <code>NEAR/n</code> for proximity.',
+   fields:['TS=','TI=','AB=','AK=','SO=']},
+  {key:'psycinfo',name:'PsycINFO',icon:'fa-brain',col:'#2D936C',
+   note:'Ovid platform. Per-group: <code>.tw.</code> per group. Final: entire expression wrapped in <code>().tw.</code>. <code>#N</code> → line numbers. <code>adj</code><em>N</em> for proximity.',
+   fields:['.tw.','.ti.','.ab.','.mp.','.sh.']},
+  {key:'embase',name:'Embase',icon:'fa-pills',col:'#C44536',
+   note:'Ovid platform. Per-group: <code>.tw.</code> per group. Final: entire expression wrapped in <code>().tw.</code>. <code>#N</code> → line numbers. Emtree for controlled vocab.',
+   fields:['.tw.','.ti.','.ab.','.mp.','/exp']},
+  {key:'ebsco',name:'EBSCOhost',icon:'fa-server',col:'#0077B6',
+   note:'<code>?</code> → <code>#</code>. Per-group: <code>TX ()</code> per group. Final: entire expression wrapped in one <code>TX ()</code>. References as <code>S1, S2…</code>.',
+   fields:['TX','TI','AB','SU','MH']},
+  {key:'cinahl',name:'CINAHL',icon:'fa-heart-pulse',col:'#E63946',
+   note:'EBSCOhost platform. <code>?</code> → <code>#</code>. Per-group: <code>TX ()</code> per group. Final: entire expression wrapped in one <code>TX ()</code>. References as <code>S1, S2…</code>.',
+   fields:['TX','TI','AB','MW','MH']},
+  {key:'cochrane',name:'Cochrane',icon:'fa-shield-halved',col:'#457B9D',
+   note:'<code>:ti,ab,kw</code> auto-applied to <strong>each term</strong>. <code>NEAR/n</code> and <code>NEXT</code> for proximity. <code>[mh]</code> for MeSH terms.',
+   fields:[':ti',':ab',':kw','[mh]','NEAR/n']}
+];
+var selectedDbs=new Set(['pubmed']);
+
+/* Convert individual term wildcards for a specific database */
+function convertTermForDb(t,dbKey){
+  if(!t)return t;
+  switch(dbKey){
+    case'pubmed':return t.replace(/(\w)\?(\w)/g,'$1-$2');
+    case'ebsco':case'cinahl':return t.replace(/(\w)\?(\w)/g,'$1#$2');
+    default:return t;
+  }
+}
+/* Convert combo-group display string (reference format & operator changes, NO field tags) */
+function convertComboForDb(str,dbKey){
+  if(!str)return str;
+  var r=str;
+  switch(dbKey){
+    case'scopus':
+      r=r.replace(/\b(AND\s+)?NOT\b/gi,function(m,pre){return pre?m:'AND NOT';});break;
+    case'psycinfo':case'embase':
+      r=r.replace(/#(\d+)/g,'$1');break;
+    case'ebsco':case'cinahl':
+      r=r.replace(/#(\d+)/g,'S$1');break;
+  }
+  return r;
+}
+/* Build a terms-group string with proper per-term field tags for a database */
+function groupToStringDb(g,dbKey){
+  if(g.type!=='terms'||g.terms.length===0)return'';
+  var terms=g.terms.map(function(t){return convertTermForDb(t,dbKey);});
+  var op=g.operator;
+  var joined=terms.join(' '+op+' ');
+  switch(dbKey){
+    case'pubmed':return'('+terms.map(function(t){return t+'[tiab]';}).join(' '+op+' ')+')';
+    case'scopus':return'TITLE-ABS-KEY('+joined+')';
+    case'wos':return'TS=('+joined+')';
+    case'psycinfo':case'embase':return'('+joined+').tw.';
+    case'ebsco':case'cinahl':return'TX ('+joined+')';
+    case'cochrane':return'('+joined+'):ti,ab,kw';
+    default:return'('+joined+')';
+  }
+}
+/* Per-term resolve: expand #N with per-term field tags (for PubMed, Cochrane) */
+function resolvePerTerm(str,dbKey,visited){
+  if(!visited)visited=new Set();
+  return str.replace(/#(\d+)/g,function(m,num){
+    var id=parseInt(num);if(visited.has(id))return m;
+    var g=groups.find(function(x){return x.id===id;});if(!g)return m;
+    visited.add(id);
+    if(g.type==='terms'){return groupToStringDb(g,dbKey);}
+    var s=groupToString(g);
+    return'('+resolvePerTerm(s,dbKey,new Set(visited))+')';
+  });
+}
+/* Raw resolve: expand #N to plain terms (no field tags), with wildcard conversion */
+function resolveRaw(str,dbKey,visited){
+  if(!visited)visited=new Set();
+  return str.replace(/#(\d+)/g,function(m,num){
+    var id=parseInt(num);if(visited.has(id))return m;
+    var g=groups.find(function(x){return x.id===id;});if(!g)return m;
+    visited.add(id);
+    if(g.type==='terms'){
+      var terms=g.terms.map(function(t){return convertTermForDb(t,dbKey);});
+      return'('+terms.join(' '+g.operator+' ')+')';
+    }
+    var s=groupToString(g);
+    return'('+resolveRaw(s,dbKey,new Set(visited))+')';
+  });
+}
+/* Get the final resolved string formatted for a specific database.
+   PubMed & Cochrane: per-term field tags throughout.
+   Others: resolve to raw terms, then wrap entire expression in one field tag. */
+function getDbFinal(dbKey){
+  if(groups.length===0)return'';
+  var last=groups[groups.length-1];
+  /* — per-term databases — */
+  if(dbKey==='pubmed'||dbKey==='cochrane'){
+    if(last.type==='terms')return groupToStringDb(last,dbKey);
+    return resolvePerTerm(groupToString(last),dbKey);
+  }
+  /* — expression-level databases — */
+  var raw;
+  if(last.type==='terms'){
+    var terms=last.terms.map(function(t){return convertTermForDb(t,dbKey);});
+    raw=terms.join(' '+last.operator+' ');
+  }else{
+    raw=resolveRaw(groupToString(last),dbKey);
+  }
+  if(dbKey==='scopus')raw=raw.replace(/\b(AND\s+)?NOT\b/gi,function(m,pre){return pre?m:'AND NOT';});
+  switch(dbKey){
+    case'scopus':return'TITLE-ABS-KEY('+raw+')';
+    case'wos':return'TS=('+raw+')';
+    case'psycinfo':case'embase':return'('+raw+').tw.';
+    case'ebsco':case'cinahl':return'TX ('+raw+')';
+    default:return raw;
+  }
+}
+/* Get a single group's string formatted for a specific database */
+function getDbGroupStr(g,dbKey){
+  if(g.type==='terms')return groupToStringDb(g,dbKey);
+  return convertComboForDb(groupToString(g),dbKey);
+}
+
+function toggleDb(key){
+  if(selectedDbs.has(key))selectedDbs.delete(key);else selectedDbs.add(key);
+  renderDbSection();
+}
+function selectAllDbs(){databases.forEach(function(d){selectedDbs.add(d.key);});renderDbSection();}
+function deselectAllDbs(){selectedDbs.clear();renderDbSection();}
+
+function renderDbSection(){
+  var sec=document.getElementById('dbSection');
+  if(groups.length===0){sec.style.display='none';return;}
+  sec.style.display='';
+  /* ── select bar with chips ── */
+  var chipsHtml=databases.map(function(d){
+    var on=selectedDbs.has(d.key);
+    var cls='db-chip'+(on?' active':'');
+    var sty=on?' style="background:'+d.col+';border-color:'+d.col+'"':'';
+    return'<button class="'+cls+'"'+sty+' onclick="toggleDb(\''+d.key+'\')">'+
+      '<span class="chk">'+(on?'<i class="fas fa-check"></i>':'')+'</span>'+
+      '<i class="fas '+d.icon+'"></i> '+d.name+'</button>';
+  }).join('');
+  document.getElementById('dbSelectBar').innerHTML=
+    '<div class="db-select-bar"><span class="sel-label">Select Databases:</span>'+
+    '<div class="db-chips">'+chipsHtml+'</div>'+
+    '<div class="db-select-actions">'+
+    '<button class="btn btn-xs" onclick="selectAllDbs()">All</button>'+
+    '<button class="btn btn-xs" onclick="deselectAllDbs()">None</button></div></div>';
+  /* ── panels ── */
+  var panels=document.getElementById('dbPanels');
+  if(selectedDbs.size===0){
+    panels.innerHTML='<div class="db-empty"><i class="fas fa-hand-pointer"></i>Select one or more databases above to see converted queries</div>';
+    return;
+  }
+  var html='';
+  databases.forEach(function(db){
+    if(!selectedDbs.has(db.key))return;
+    html+='<div class="db-panel"><div class="db-panel-head" style="background:'+db.col+'">';
+    html+='<h3><i class="fas '+db.icon+'"></i> '+esc(db.name)+'</h3>';
+    html+='<div class="db-panel-actions">';
+    html+='<button class="btn btn-xs" onclick="copyAllDb(\''+db.key+'\')"><i class="fas fa-copy"></i> Copy All</button>';
+    html+='<button class="btn btn-xs" onclick="downloadDbStrategy(\''+db.key+'\')"><i class="fas fa-download"></i> .txt</button>';
+    html+='</div></div>';
+    html+='<div class="db-panel-body">';
+    html+='<div class="db-note" style="border-left-color:'+db.col+'"><strong>'+esc(db.name)+':</strong> '+db.note+
+      '<div class="db-fields">'+db.fields.map(function(f){return'<span class="db-field-tag">'+esc(f)+'</span>';}).join('')+'</div></div>';
+    groups.forEach(function(g){
+      var converted=getDbGroupStr(g,db.key);
+      html+='<div class="db-query-card"><div class="db-query-head">'+
+        '<span class="db-q-label"><span class="gc-id">#'+g.id+'</span> '+esc(g.name)+(g.papers?' <small style="color:var(--text3)">['+esc(g.papers)+' papers]</small>':'')+'</span>'+
+        '<button class="btn btn-xs" onclick="copyDbQuery('+g.id+',\''+db.key+'\')"><i class="fas fa-copy"></i></button></div>'+
+        '<div class="db-query-body">'+(converted?highlightWithParens(converted):'<em style="opacity:.5">empty</em>')+'</div></div>';
+    });
+    var cr=getDbFinal(db.key);var dbFInfo=analyzeParens(cr);
+    html+='<div class="db-final-card" style="border-color:'+db.col+'"><div class="db-final-head">'+
+      '<h4 style="color:'+db.col+'"><i class="fas fa-flag-checkered"></i> Final Resolved '+parenBadge(dbFInfo)+'</h4>'+
+      '<button class="btn btn-xs" onclick="copyDbResolved(\''+db.key+'\')"><i class="fas fa-copy"></i> Copy</button></div>'+
+      '<div class="db-final-body">'+highlightWithParens(cr)+(!dbFInfo.balanced?parenDetail(dbFInfo):'')+'</div></div>';
+    html+='</div></div>';
+  });
+  if(selectedDbs.size>1){
+    html+='<div class="db-all-footer">'+
+      '<button class="btn btn-primary" onclick="downloadAllSelected()"><i class="fas fa-download"></i> Download All Selected (.txt)</button>'+
+      '<button class="btn" onclick="copyAllSelected()"><i class="fas fa-copy"></i> Copy All Selected</button></div>';
+  }
+  panels.innerHTML=html;
+}
+
+function copyDbQuery(gid,dbKey){
+  var g=groups.find(function(x){return x.id===gid;});if(!g)return;
+  var str=getDbGroupStr(g,dbKey);
+  var db=databases.find(function(d){return d.key===dbKey;});
+  if(navigator.clipboard){navigator.clipboard.writeText(str);toast('Copied #'+g.id+' for '+db.name);}
+}
+function copyDbResolved(dbKey){
+  var converted=getDbFinal(dbKey);
+  var db=databases.find(function(d){return d.key===dbKey;});
+  if(navigator.clipboard){navigator.clipboard.writeText(converted);toast('Resolved copied for '+db.name);}
+}
+function buildDbText(db){
+  var text='=== '+db.name+' Search Strategy ===\n';
+  text+='Generated: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'\n\n';
+  groups.forEach(function(g){
+    var str=getDbGroupStr(g,db.key);
+    text+='#'+g.id+'  '+g.name+(g.papers?'  ['+g.papers+' papers]':'')+'\n';
+    text+=str+'\n\n';
+  });
+  text+='=== Final Resolved Query ===\n'+getDbFinal(db.key)+'\n';
+  return text;
+}
+function copyAllDb(dbKey){
+  var db=databases.find(function(d){return d.key===dbKey;});
+  if(navigator.clipboard){navigator.clipboard.writeText(buildDbText(db));toast('All queries copied for '+db.name);}
+}
+function downloadDbStrategy(dbKey){
+  var db=databases.find(function(d){return d.key===dbKey;});
+  var blob=new Blob([buildDbText(db)],{type:'text/plain'});var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=db.name.replace(/\s+/g,'_')+'_Search_Strategy.txt';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast(db.name+' strategy downloaded!');
+}
+function copyAllSelected(){
+  if(selectedDbs.size===0){toast('Select databases first');return;}
+  var text=buildAllSelectedText();
+  if(navigator.clipboard){navigator.clipboard.writeText(text);toast('All selected strategies copied!');}
+}
+function downloadAllSelected(){
+  if(selectedDbs.size===0){toast('Select databases first');return;}
+  var text=buildAllSelectedText();
+  var blob=new Blob([text],{type:'text/plain'});var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='All_Database_Strategies.txt';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('All strategies downloaded!');
+}
+function buildAllSelectedText(){
+  var text='SEARCH STRATEGY — ALL DATABASES\n';
+  text+='Generated: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'\n';
+  text+='════════════════════════════════\n\n';
+  databases.forEach(function(db){
+    if(!selectedDbs.has(db.key))return;
+    text+='\n━━━ '+db.name.toUpperCase()+' ━━━\n\n';
+    groups.forEach(function(g){
+      var str=getDbGroupStr(g,db.key);
+      text+='#'+g.id+'  '+g.name+(g.papers?'  ['+g.papers+' papers]':'')+'\n';
+      text+=str+'\n\n';
+    });
+    text+='Final Resolved:\n'+getDbFinal(db.key)+'\n\n';
+  });
+  return text;
+}
+
+function showModal(id){document.getElementById(id).classList.add('show');}
+function hideModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.modal-bg').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('show');});});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal-bg.show').forEach(function(m){m.classList.remove('show');});});
+function showConfirm(title,msg,onOk){
+  document.getElementById('confirmTitle').textContent=title;document.getElementById('confirmMsg').innerHTML=msg;
+  var btn=document.getElementById('confirmOk');btn.textContent='Confirm';btn.onclick=function(){hideModal('confirmModal');onOk();};showModal('confirmModal');
+}
+var toastTimer;
+function toast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},2200);}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+function loadRawData(raws){
+  groups=raws.map(function(r){return rawToGroup(r);});
+  nextId=Math.max.apply(null,groups.map(function(g){return g.id;}).concat([0]))+1;render();
+}
+
+var INIT_CSV='ID,Concept,String,Papers\n'+
+'1,Parent,parent* OR caregiv* OR father* OR mother* or legal guardian* OR parental participat* OR parental OR maternal* OR single?parent* OR co?parent*,\n'+
+'2,Step-Parents,step?mo* OR step?dad* OR step?family OR step?father* OR step?parent* OR step?child*,\n'+
+'3,Guardian,guardian*,\n'+
+'4,Homeschooling,home OR home?base* OR child?led OR family?led OR non?school* OR informal OR parent?led OR interest?led OR alternat* OR self?direct* OR inclusive OR non?coercive OR natural OR radical OR experience?base* OR life?base* OR home?school* OR deschool* OR unschool*,\n'+
+'5,Education,educat* OR instruct* OR learn* OR curricul*,\n'+
+'6,Education Level,(primary OR secondary OR elementary) AND education,\n'+
+'7,Twice-Exceptional,dual?exception* OR twice?exception* OR 2e,\n'+
+'8,Gifted,talent* OR gift* OR high?abilit* OR advance*,\n'+
+'9,Disability,disability* OR ADHD OR autism OR dyslexi* OR impair* OR neurodiverg*,\n'+
+'10,Children,child* OR kid* OR youngster* OR youth* OR minor* OR schoolchild* OR pre?teen* OR pre?diatric* OR adolescen* OR teen* OR juvenile* OR pupil* OR student*,\n'+
+'11,Parenting,#1 OR #2 OR #3,\n'+
+'12,Homeschooling education,(#4 AND #5) OR #6,\n'+
+'13,Gifted,#7 OR (#8 AND #9),\n'+
+'14,Gifted Children,#13 AND #10,\n'+
+'15,Final String,(#11 OR #12) AND #14,';
+
+loadRawData(parseCSV(INIT_CSV));
+
+/* ═══ PDF Export ═══ */
+function exportPDF(){
+  if(groups.length===0){toast('No groups');return;}
+  if(typeof window.jspdf==='undefined'){toast('PDF library loading...');return;}
+  try{
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    var pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
+    var margin=18,contentW=pageW-margin*2,y=margin;
+    var C={accent:[212,85,42],andC:[108,79,199],orC:[212,138,10],ref:[26,140,110],text:[44,40,36],text2:[94,87,79],text3:[154,146,137],cardBg:[248,246,242],line:[221,216,206]};
+    function checkPage(n){if(y+n>pageH-margin){doc.addPage();y=margin;}}
+    // Title
+    doc.setFillColor(C.accent[0],C.accent[1],C.accent[2]);doc.roundedRect(margin,y,contentW,20,3,3,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont('helvetica','bold');doc.text('Search Strategy Report',margin+8,y+9);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    var now=new Date(),dateStr=now.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    doc.text('Generated: '+dateStr+'  |  '+groups.length+' groups',margin+8,y+16);y+=28;
+    // TOC
+    doc.setTextColor(C.text[0],C.text[1],C.text[2]);doc.setFontSize(12);doc.setFont('helvetica','bold');doc.text('Table of Contents',margin,y);y+=7;
+    groups.forEach(function(g){checkPage(5);var col=g.type==='combo'?C.andC:C.text2;doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(col[0],col[1],col[2]);
+      var pLabel=g.papers?' ['+g.papers+' papers]':'';doc.text('#'+g.id+'  '+g.name+pLabel,margin+4,y);y+=5;});
+    y+=6;doc.setDrawColor(C.line[0],C.line[1],C.line[2]);doc.setLineWidth(0.3);doc.line(margin,y,pageW-margin,y);y+=8;
+    // Groups
+    groups.forEach(function(g,idx){
+      var str=groupToString(g),isCombo=g.type==='combo',hasRef=/#\d+/.test(str),resolved=(isCombo||hasRef)?resolveString(str):null;
+      var strLines=doc.splitTextToSize(str||'(empty)',contentW-12);checkPage(30);
+      var hCol=isCombo?C.andC:C.accent;doc.setFillColor(hCol[0],hCol[1],hCol[2]);doc.roundedRect(margin,y,contentW,8,2,2,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+      var headerTxt='#'+g.id+'  '+g.name;if(g.papers)headerTxt+='  ['+g.papers+' papers]';
+      doc.text(headerTxt,margin+4,y+5.5);y+=12;
+      doc.setFillColor(C.cardBg[0],C.cardBg[1],C.cardBg[2]);var boxH=Math.max(8,strLines.length*3.8+4);checkPage(boxH+4);
+      doc.roundedRect(margin,y,contentW,boxH,2,2,'F');doc.setDrawColor(C.line[0],C.line[1],C.line[2]);doc.setLineWidth(0.15);doc.roundedRect(margin,y,contentW,boxH,2,2,'S');
+      doc.setFontSize(7.5);doc.setFont('courier','normal');doc.setTextColor(C.text[0],C.text[1],C.text[2]);doc.text(strLines,margin+4,y+4);y+=boxH+3;
+      if(resolved){checkPage(16);var resLines=doc.splitTextToSize(resolved,contentW-12).slice(0,15);var resH=Math.max(8,resLines.length*3.5+5);
+        doc.setFillColor(230,245,240);doc.roundedRect(margin,y,contentW,resH,2,2,'F');doc.setDrawColor(C.ref[0],C.ref[1],C.ref[2]);doc.setLineWidth(0.25);doc.roundedRect(margin,y,contentW,resH,2,2,'S');
+        doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(C.ref[0],C.ref[1],C.ref[2]);doc.text('RESOLVED',margin+3,y+3.5);
+        doc.setFontSize(7);doc.setFont('courier','normal');doc.setTextColor(C.text2[0],C.text2[1],C.text2[2]);doc.text(resLines,margin+3,y+7);y+=resH+3;}
+      y+=5;if(idx<groups.length-1){checkPage(3);doc.setDrawColor(C.line[0],C.line[1],C.line[2]);doc.setLineWidth(0.2);doc.line(margin,y,pageW-margin,y);y+=5;}
+    });
+    // Final
+    checkPage(30);y+=4;var last=groups[groups.length-1],fResolved=resolveString(groupToString(last)),fLines=doc.splitTextToSize(fResolved,contentW-12);
+    doc.setFillColor(C.accent[0],C.accent[1],C.accent[2]);doc.roundedRect(margin,y,contentW,7,2,2,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text('Final (#'+last.id+' — '+last.name+')',margin+4,y+5);y+=10;
+    var fBoxH=Math.max(12,fLines.length*3.8+6);checkPage(fBoxH+4);
+    doc.setFillColor(255,248,244);doc.roundedRect(margin,y,contentW,fBoxH,2,2,'F');doc.setDrawColor(C.accent[0],C.accent[1],C.accent[2]);doc.setLineWidth(0.35);doc.roundedRect(margin,y,contentW,fBoxH,2,2,'S');
+    doc.setFontSize(7.5);doc.setFont('courier','normal');doc.setTextColor(C.text[0],C.text[1],C.text[2]);doc.text(fLines,margin+4,y+5);
+    var tp=doc.internal.getNumberOfPages();for(var pg=1;pg<=tp;pg++){doc.setPage(pg);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(C.text3[0],C.text3[1],C.text3[2]);doc.text('Search Strategy Report — Page '+pg+'/'+tp,margin,pageH-8);doc.text(dateStr,pageW-margin,pageH-8,{align:'right'});}
+    doc.save('Search_Strategy_Report.pdf');toast('PDF downloaded!');
+  }catch(err){toast('PDF error: '+err.message);}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://puc.poecdn.net;
+  style-src 'self' 'unsafe-inline';
+  connect-src 'self' https://eutils.ncbi.nlm.nih.gov;
+">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PubMed Research Data Extractor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+<script src="https://puc.poecdn.net/authenticated_preview_page/syncedState.bd4eeeb8e8e02052ee92.js"></script></head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">
+                PubMed Research Data Extractor
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300">
+                Extract study design, cohort, sample size, methods, and publication year from PubMed articles
+            </p>
+            <p id="serverStatus" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p>
+            <a id="notionDemoLink" href="https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7" target="_blank" rel="noopener" class="inline-block mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">View Notion demo database →</a>
+        </div>
+
+        <!-- Input Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <div class="mb-4">
+                <label for="pmids" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Enter PMIDs (one per line or comma-separated):
+                </label>
+                <textarea id="pmids" rows="4" class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white" placeholder="Enter PMIDs, e.g.:
+12345678
+23456789
+34567890"></textarea>
+            </div>
+            
+            <button id="extractBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed" onclick="extractData()">
+                <span id="btnText">Extract Research Data</span>
+                <div id="btnLoading" class="hidden inline-flex items-center">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                </div>
+            </button>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Processing Progress</h3>
+            <div id="progressList" class="space-y-2"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <div class="flex flex-wrap gap-2 justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Extracted Research Data</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="notionBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 disabled:opacity-50" onclick="uploadToNotion()">
+                            Upload to Notion
+                        </button>
+                        <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200" onclick="exportToCSV()">
+                            Export CSV
+                        </button>
+                    </div>
+                </div>
+                <p id="notionUploadStatus" class="hidden mb-4 text-sm text-gray-600 dark:text-gray-300"></p>
+                <div class="overflow-x-auto">
+                    <table id="resultsTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">PMID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Study Design</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cohort</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sample Size</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Method</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Year</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <div id="errorSection" class="hidden bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+                    <div id="errorMessage" class="mt-2 text-sm text-red-700 dark:text-red-300"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        let extractedData = [];
+        const API_BASE = window.location.origin;
+
+        async function loadServerConfig() {
+            try {
+                const res = await fetch(`${API_BASE}/api/health`);
+                if (!res.ok) return;
+                const cfg = await res.json();
+                const el = document.getElementById('serverStatus');
+                const link = document.getElementById('notionDemoLink');
+                if (cfg.notionDemoUrl) link.href = cfg.notionDemoUrl;
+                const parts = [];
+                parts.push(cfg.poeConfigured ? `AI: ${cfg.model}` : 'AI: configure POE_API_KEY on server');
+                parts.push(cfg.notionConfigured ? 'Notion: ready' : 'Notion: set NOTION_TOKEN on server');
+                el.textContent = parts.join(' · ');
+            } catch {
+                document.getElementById('serverStatus').textContent =
+                    'Run npm start (or deploy on Render) so Poe and Notion APIs work from the server.';
+            }
+        }
+        loadServerConfig();
+
+        function showError(message) {
+            const errorSection = document.getElementById('errorSection');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorSection.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorSection').classList.add('hidden');
+        }
+
+        function setLoading(isLoading) {
+            const btn = document.getElementById('extractBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoading = document.getElementById('btnLoading');
+            
+            if (isLoading) {
+                btn.disabled = true;
+                btnText.classList.add('hidden');
+                btnLoading.classList.remove('hidden');
+            } else {
+                btn.disabled = false;
+                btnText.classList.remove('hidden');
+                btnLoading.classList.add('hidden');
+            }
+        }
+
+        function updateProgress(pmid, status, message) {
+            const progressSection = document.getElementById('progressSection');
+            const progressList = document.getElementById('progressList');
+            
+            progressSection.classList.remove('hidden');
+            
+            let progressItem = document.getElementById(`progress-${pmid}`);
+            if (!progressItem) {
+                progressItem = document.createElement('div');
+                progressItem.id = `progress-${pmid}`;
+                progressItem.className = 'flex items-center space-x-2';
+                progressList.appendChild(progressItem);
+            }
+            
+            const statusIcon = status === 'success' ? '✅' : status === 'error' ? '❌' : '🔄';
+            progressItem.innerHTML = `
+                <span>${statusIcon}</span>
+                <span class="text-sm text-gray-600 dark:text-gray-300">PMID ${pmid}: ${message}</span>
+            `;
+        }
+
+        async function fetchPubMedData(pmids) {
+            const baseUrl = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/';
+            const results = [];
+            
+            for (const pmid of pmids) {
+                try {
+                    updateProgress(pmid, 'loading', 'Fetching from PubMed...');
+                    
+                    // Fetch article summary
+                    const summaryResponse = await fetch(`${baseUrl}esummary.fcgi?db=pubmed&id=${pmid}&retmode=json`);
+                    const summaryData = await summaryResponse.json();
+                    
+                    if (summaryData.error || !summaryData.result || !summaryData.result[pmid]) {
+                        updateProgress(pmid, 'error', 'Article not found');
+                        continue;
+                    }
+                    
+                    const article = summaryData.result[pmid];
+                    
+                    // Fetch full abstract
+                    const fetchResponse = await fetch(`${baseUrl}efetch.fcgi?db=pubmed&id=${pmid}&retmode=xml`);
+                    const xmlText = await fetchResponse.text();
+                    
+                    // Parse XML to extract abstract
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                    const abstractTexts = xmlDoc.querySelectorAll('AbstractText');
+                    
+                    let abstract = '';
+                    abstractTexts.forEach(node => {
+                        const label = node.getAttribute('Label');
+                        const text = node.textContent;
+                        if (label) {
+                            abstract += `${label}: ${text}\n`;
+                        } else {
+                            abstract += `${text}\n`;
+                        }
+                    });
+                    
+                    results.push({
+                        pmid: pmid,
+                        title: article.title || 'No title available',
+                        abstract: abstract.trim() || 'No abstract available',
+                        year: article.pubdate ? article.pubdate.split(' ')[0] : 'Unknown'
+                    });
+                    
+                    updateProgress(pmid, 'success', 'Data fetched successfully');
+                    
+                } catch (error) {
+                    console.error(`Error fetching PMID ${pmid}:`, error);
+                    updateProgress(pmid, 'error', `Fetch error: ${error.message}`);
+                }
+                
+            }
+            
+            return results;
+        }
+
+        async function extractWithPoe(articleData) {
+            try {
+                updateProgress(articleData.pmid, 'loading', 'Extracting with Poe AI...');
+
+                const response = await fetch(`${API_BASE}/api/extract`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pmid: articleData.pmid,
+                        title: articleData.title,
+                        abstract: articleData.abstract,
+                        year: articleData.year
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || response.statusText);
+                }
+
+                updateProgress(articleData.pmid, 'success', 'Data extracted successfully');
+                return data;
+            } catch (error) {
+                console.error(`Error extracting data for PMID ${articleData.pmid}:`, error);
+                updateProgress(articleData.pmid, 'error', `Extraction error: ${error.message}`);
+                return {
+                    pmid: articleData.pmid,
+                    title: articleData.title,
+                    study_design: 'Error',
+                    cohort: 'Error',
+                    sample_size: 'Error',
+                    method: 'Error',
+                    year: articleData.year || 'Error'
+                };
+            }
+        }
+
+        async function uploadToNotion() {
+            if (extractedData.length === 0) {
+                showError('Extract data first before uploading to Notion');
+                return;
+            }
+
+            const btn = document.getElementById('notionBtn');
+            const statusEl = document.getElementById('notionUploadStatus');
+            btn.disabled = true;
+            statusEl.classList.remove('hidden');
+            statusEl.textContent = 'Uploading to Notion...';
+            hideError();
+
+            try {
+                const response = await fetch(`${API_BASE}/api/notion/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rows: extractedData })
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Notion upload failed');
+                }
+
+                const ok = result.created?.length || 0;
+                const fail = result.errors?.length || 0;
+                let msg = `Uploaded ${ok} row(s) to Notion.`;
+                if (fail) msg += ` ${fail} failed.`;
+                if (result.notionDemoUrl) {
+                    msg += ` <a href="${result.notionDemoUrl}" target="_blank" rel="noopener" class="text-blue-600 underline">Open demo database</a>`;
+                }
+                statusEl.innerHTML = msg;
+            } catch (error) {
+                showError(error.message);
+                statusEl.textContent = '';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsBody = document.getElementById('resultsBody');
+            
+            resultsBody.innerHTML = '';
+            
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${item.pmid}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate" title="${item.title}">${item.title}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">${item.study_design}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate" title="${item.cohort}">${item.cohort}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">${item.sample_size}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate" title="${item.method}">${item.method}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">${item.year}</td>
+                `;
+                resultsBody.appendChild(row);
+            });
+            
+            resultsSection.classList.remove('hidden');
+        }
+
+        function exportToCSV() {
+            if (extractedData.length === 0) return;
+            
+            const headers = ['PMID', 'Title', 'Study Design', 'Cohort', 'Sample Size', 'Method', 'Year'];
+            const csvContent = [
+                headers.join(','),
+                ...extractedData.map(row => [
+                    row.pmid,
+                    `"${row.title.replace(/"/g, '""')}"`,
+                    `"${row.study_design.replace(/"/g, '""')}"`,
+                    `"${row.cohort.replace(/"/g, '""')}"`,
+                    `"${row.sample_size.replace(/"/g, '""')}"`,
+                    `"${row.method.replace(/"/g, '""')}"`,
+                    row.year
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pubmed_research_data.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        async function extractData() {
+            hideError();
+            setLoading(true);
+            
+            const pmidsInput = document.getElementById('pmids').value.trim();
+            
+            if (!pmidsInput) {
+                showError('Please enter at least one PMID');
+                setLoading(false);
+                return;
+            }
+            
+            // Parse PMIDs
+            const pmids = pmidsInput
+                .split(/[,\n]/)
+                .map(id => id.trim())
+                .filter(id => id && /^\d+$/.test(id));
+            
+            if (pmids.length === 0) {
+                showError('Please enter valid PMIDs (numbers only)');
+                setLoading(false);
+                return;
+            }
+            
+            try {
+                // Clear previous results
+                extractedData = [];
+                document.getElementById('progressList').innerHTML = '';
+                document.getElementById('resultsSection').classList.add('hidden');
+                
+                // Fetch PubMed data
+                const articleData = await fetchPubMedData(pmids);
+                
+                if (articleData.length === 0) {
+                    showError('No valid articles found for the provided PMIDs');
+                    setLoading(false);
+                    return;
+                }
+                
+                for (const article of articleData) {
+                    const extracted = await extractWithPoe(article);
+                    extractedData.push(extracted);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // Display results
+                displayResults(extractedData);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`An error occurred: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+    </script>
+
+
+</body></html>

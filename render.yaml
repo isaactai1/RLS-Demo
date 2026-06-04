@@ -1,0 +1,27 @@
+# Render Blueprint — RLS Demo (full app: Index + Research tools + API)
+# Deploy: Dashboard → New → Blueprint → connect this repo
+# Docs: https://render.com/docs/infrastructure-as-code
+
+services:
+  - type: web
+    name: rls-demo
+    runtime: node
+    plan: free
+    buildCommand: npm install && node scripts/generate-tools.js
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: POE_API_KEY
+        sync: false
+      - key: POE_MODEL
+        value: gemini-3.1-flash-lite
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_DATABASE_ID
+        value: b34bd47e6a11414fbee75d51d79994e7
+      - key: NOTION_DEMO_URL
+        value: https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7
