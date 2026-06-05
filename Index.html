@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
     <meta name="x-poe-datastore-behavior" content="local_only">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com https://api.qrserver.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; img-src 'self' data: blob: https://api.qrserver.com; upgrade-insecure-requests; block-all-mixed-content;">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RLS Demo</title>
@@ -301,6 +301,131 @@
             letter-spacing: 0.15em;
             font-weight: 300;
             opacity: 0.7;
+        }
+
+        /* Spotlight — LibGuide & events */
+        .spotlight {
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeIn 0.8s ease-out 0.75s forwards;
+        }
+
+        .spotlight-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            letter-spacing: 0.04em;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--fg);
+            padding-bottom: 8px;
+        }
+
+        .spotlight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .spotlight-card {
+            border: 2px solid var(--fg);
+            background: var(--bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .spotlight-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            display: inline-block;
+            padding: 4px 8px;
+            border: 1px solid var(--fg);
+            width: fit-content;
+        }
+
+        .spotlight-card h3 {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1rem;
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+        }
+
+        .spotlight-card p,
+        .spotlight-card li {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--gray-3);
+        }
+
+        html.dark .spotlight-card p,
+        html.dark .spotlight-card li {
+            color: var(--gray-3);
+        }
+
+        .spotlight-meta {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .spotlight-meta li {
+            margin-bottom: 6px;
+        }
+
+        .spotlight-meta strong {
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .spotlight-link {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--fg);
+            text-decoration: none;
+            border-bottom: 2px solid var(--fg);
+            padding-bottom: 2px;
+            width: fit-content;
+        }
+
+        .spotlight-link:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .spotlight-qr-row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-2);
+        }
+
+        .spotlight-qr {
+            flex-shrink: 0;
+            width: 120px;
+            height: 120px;
+            border: 2px solid var(--fg);
+            padding: 6px;
+            background: #fff;
+        }
+
+        .spotlight-qr img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .spotlight-note {
+            font-size: 0.75rem !important;
+            font-style: italic;
+            margin-top: 8px;
         }
 
         /* Controls Area */
@@ -774,6 +899,17 @@
             .empty-hint {
                 font-size: 0.8rem;
             }
+
+            .spotlight-qr-row {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .spotlight-link {
+                margin-left: auto;
+                margin-right: auto;
+            }
         }
 
         /* Reduce motion for accessibility */
@@ -845,6 +981,39 @@
 
 
                 <div id="demoDbBar" data-variant="compact"></div>
+
+                <section class="spotlight" aria-labelledby="spotlightHeading">
+                    <h2 class="spotlight-title" id="spotlightHeading">Resources &amp; Events</h2>
+                    <div class="spotlight-grid">
+                        <article class="spotlight-card">
+                            <span class="spotlight-tag">LibGuide Demo</span>
+                            <h3>EdUHK Library Guide Preview</h3>
+                            <p>Example LibGuide page for demos and walkthroughs — open the live preview link below.</p>
+                            <a class="spotlight-link" href="https://libguides.eduhk.hk/c.php?g=983932&amp;p=7170830&amp;preview=adf59407ae7dd5b50a25b3624cee8eb2" target="_blank" rel="noopener noreferrer">Open LibGuide demo →</a>
+                        </article>
+
+                        <article class="spotlight-card">
+                            <span class="spotlight-tag">Training · Scite</span>
+                            <h3>Scite — Search History &amp; Collections</h3>
+                            <p>Online session with Mr. Eric Colteau (Scite Implementations Lead). Advanced features beyond basic use.</p>
+                            <ul class="spotlight-meta">
+                                <li><strong>Date &amp; time:</strong> 24 June 2026 (Wed), 15:00 – 16:00</li>
+                                <li><strong>Meeting ID:</strong> 760 820 1887</li>
+                                <li><strong>Passcode:</strong> 951496</li>
+                            </ul>
+                            <div class="spotlight-qr-row">
+                                <div class="spotlight-qr" aria-hidden="true">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Feduhk.zoom.us%2Fj%2F7608201887%3Fpwd%3DTS9iajVGOVFjVUxCclRVTXJnRTNBZz09" width="200" height="200" alt="QR code — Join Scite training Zoom">
+                                </div>
+                                <div>
+                                    <a class="spotlight-link" href="https://eduhk.zoom.us/j/7608201887?pwd=TS9iajVGOVFjVUxCclRVTXJnRTNBZz09" target="_blank" rel="noopener noreferrer">Join Zoom meeting →</a>
+                                    <p class="spotlight-note">This training is <strong>not</strong> part of the Certificate Course “Introduction to Teaching Higher Education” (Theme IV: Learning and Teaching Support).</p>
+                                    <p class="spotlight-note">Share questions in advance with colleagues; Scite can prepare answers for the session.</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
 
                 <!-- Controls -->
                 <div class="controls-area">
