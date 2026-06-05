@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=JetBrains+Mono:wght@300;400;600&amp;family=Archivo+Black&amp;display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
     <script src="tools.js"></script>
     <script src="demo-links.js"></script>
     <style>
@@ -416,7 +417,8 @@
             background: #fff;
         }
 
-        .spotlight-qr img {
+        .spotlight-qr img,
+        .spotlight-qr canvas {
             width: 100%;
             height: 100%;
             display: block;
@@ -1002,8 +1004,8 @@
                                 <li><strong>Passcode:</strong> 951496</li>
                             </ul>
                             <div class="spotlight-qr-row">
-                                <div class="spotlight-qr" aria-hidden="true">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&amp;data=https%3A%2F%2Feduhk.zoom.us%2Fj%2F7608201887%3Fpwd%3DTS9iajVGOVFjVUxCclRVTXJnRTNBZz09" width="200" height="200" alt="QR code — Join Scite training Zoom">
+                                <div class="spotlight-qr">
+                                    <img id="zoomQrImg" width="108" height="108" alt="QR code — Join Scite training Zoom">
                                 </div>
                                 <div>
                                     <a class="spotlight-link" href="https://eduhk.zoom.us/j/7608201887?pwd=TS9iajVGOVFjVUxCclRVTXJnRTNBZz09" target="_blank" rel="noopener noreferrer">Join Zoom meeting →</a>
@@ -1304,10 +1306,25 @@
             document.getElementById('toolIframe').src = '';
         }
 
+        const SCITE_ZOOM_URL = 'https://eduhk.zoom.us/j/7608201887?pwd=TS9iajVGOVFjVUxCclRVTXJnRTNBZz09';
+
+        function renderZoomQr() {
+            const img = document.getElementById('zoomQrImg');
+            if (!img || typeof QRCode === 'undefined') return;
+            QRCode.toDataURL(SCITE_ZOOM_URL, {
+                width: 200,
+                margin: 1,
+                color: { dark: '#000000', light: '#ffffff' },
+            }, (err, dataUrl) => {
+                if (!err) img.src = dataUrl;
+            });
+        }
+
         // Initialize
         loadTools();
         mountDemoDbBar('#demoDbBar', 'compact');
         syncDemoDbUrls(window.location.origin);
+        renderZoomQr();
     </script>
 
 
