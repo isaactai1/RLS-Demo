@@ -596,6 +596,7 @@
   }
 </style>
 <script src="https://puc.poecdn.net/authenticated_preview_page/syncedState.bd4eeeb8e8e02052ee92.js"></script>
+<script src="../demo-links.js"></script>
 </head>
 <body>
 <div class="bg-mesh"></div>
@@ -607,8 +608,8 @@
     <div class="status-row">
       <span id="pillAi" class="pill warn"><span class="pill-dot"></span><span id="serverStatus">Checking server…</span></span>
       <span id="pillNotion" class="pill warn"><span class="pill-dot"></span><span id="notionStatus">Notion</span></span>
-      <a id="notionDemoLink" class="link-notion" href="https://www.notion.so/b34bd47e6a11414fbee75d51d79994e7" target="_blank" rel="noopener">Demo database →</a>
     </div>
+    <div id="demoDbBar"></div>
   </header>
 
   <div class="steps" aria-hidden="true">
@@ -717,13 +718,14 @@
     const pillNotion = document.getElementById('pillNotion');
     const statusEl = document.getElementById('serverStatus');
     const notionEl = document.getElementById('notionStatus');
-    const link = document.getElementById('notionDemoLink');
 
     try {
       const res = await fetch(`${API_BASE}/api/health`);
       if (!res.ok) throw new Error();
       const cfg = await res.json();
-      if (cfg.notionDemoUrl) link.href = cfg.notionDemoUrl;
+      if (cfg.notionDemoUrl) RLS_DEMO_DB.pubmed.url = cfg.notionDemoUrl;
+      if (cfg.adhdDemoUrl) RLS_DEMO_DB.adhd.url = cfg.adhdDemoUrl;
+      mountDemoDbBar('#demoDbBar');
 
       if (cfg.poeConfigured) {
         pillAi.classList.add('ready');
@@ -745,6 +747,9 @@
       notionEl.textContent = 'Notion · unavailable';
     }
   }
+
+  mountDemoDbBar('#demoDbBar');
+  syncDemoDbUrls(API_BASE);
   loadServerConfig();
 
   function showError(message) {

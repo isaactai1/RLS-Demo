@@ -254,6 +254,18 @@
     border-top-left-radius: 4px;
   }
 
+  .bubble p { margin: 0 0 8px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul { margin: 6px 0 10px 18px; padding: 0; }
+  .bubble li { margin-bottom: 6px; }
+  .bubble strong { font-weight: 700; color: var(--text); }
+  .bubble h3, .bubble h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 10px 0 6px;
+  }
+  .bubble h4 { font-size: 13px; color: var(--accent); }
+
   .msg.user .bubble {
     background: var(--user);
     color: #fff;
@@ -389,7 +401,7 @@
       <span class="cohort-dot"></span>
       <span id="cohortStatus">Loading cohort…</span>
     </div>
-    <a id="dbLink" class="db-link" href="https://www.notion.so/77e155aa30b94b5a9f28e9dc56448e63" target="_blank" rel="noopener">Open patient database →</a>
+    <div id="demoDbBar" data-variant="sidebar"></div>
     <div class="quick-label">Quick questions</div>
     <div class="quick-btns" id="quickBtns"></div>
   </aside>
@@ -405,9 +417,7 @@
     <div id="messages" class="messages">
       <div class="msg assistant welcome">
         <div class="avatar">RA</div>
-        <div class="bubble">Hello — I'm your research assistant for the <strong>ADHD Treatment Study (Demo)</strong> cohort.
-
-Ask about treatments, outcomes, adverse events, or site summaries. Pick a quick question on the left, or type your own.</div>
+        <div class="bubble" id="welcomeBubble"></div>
       </div>
     </div>
 
@@ -420,6 +430,7 @@ Ask about treatments, outcomes, adverse events, or site summaries. Pick a quick 
   </div>
 </div>
 
+<script src="../demo-links.js"></script>
 <script>
   if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
     document.documentElement.classList.add('dark');
@@ -455,11 +466,15 @@ Ask about treatments, outcomes, adverse events, or site summaries. Pick a quick 
   function appendMessage(role, text) {
     const wrap = document.createElement('div');
     wrap.className = `msg ${role}`;
-    const initial = role === 'user' ? 'You' : 'RA';
     wrap.innerHTML = `
-      <div class="avatar">${initial === 'You' ? 'You' : 'RA'}</div>
+      <div class="avatar">${role === 'user' ? 'You' : 'RA'}</div>
       <div class="bubble"></div>`;
-    wrap.querySelector('.bubble').textContent = text;
+    const bubble = wrap.querySelector('.bubble');
+    if (role === 'assistant') {
+      bubble.innerHTML = renderAssistantMarkdown(text);
+    } else {
+      bubble.textContent = text;
+    }
     messagesEl.appendChild(wrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return wrap;
@@ -483,13 +498,13 @@ Ask about treatments, outcomes, adverse events, or site summaries. Pick a quick 
   async function loadCohortMeta() {
     const pill = document.getElementById('cohortPill');
     const status = document.getElementById('cohortStatus');
-    const link = document.getElementById('dbLink');
 
     try {
       const res = await fetch(`${API_BASE}/api/adhd/patients`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load');
-      if (data.databaseUrl) link.href = data.databaseUrl;
+      if (data.databaseUrl) RLS_DEMO_DB.adhd.url = data.databaseUrl;
+      mountDemoDbBar('#demoDbBar', 'sidebar');
       pill.classList.add('ready');
       status.textContent = `${data.count} demo patients loaded`;
     } catch (e) {
@@ -544,6 +559,12 @@ Ask about treatments, outcomes, adverse events, or site summaries. Pick a quick 
     }
   });
 
+  document.getElementById('welcomeBubble').innerHTML = renderAssistantMarkdown(
+    "Hello — I'm your research assistant for the **ADHD Treatment Study (Demo)** cohort.\n\nAsk about treatments, outcomes, adverse events, or site summaries. Pick a quick question on the left, or type your own."
+  );
+
+  mountDemoDbBar('#demoDbBar', 'sidebar');
+  syncDemoDbUrls(API_BASE);
   loadCohortMeta();
 </script>
 </body>

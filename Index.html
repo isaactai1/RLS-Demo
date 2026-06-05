@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=JetBrains+Mono:wght@300;400;600&amp;family=Archivo+Black&amp;display=swap" rel="stylesheet">
     <script src="tools.js"></script>
+    <script src="demo-links.js"></script>
     <style>
         :root {
             --bg: #ffffff;
@@ -843,6 +844,8 @@
 
 
 
+                <div id="demoDbBar" data-variant="compact"></div>
+
                 <!-- Controls -->
                 <div class="controls-area">
                     <div class="search-box">
@@ -1134,6 +1137,8 @@
 
         // Initialize
         loadTools();
+        mountDemoDbBar('#demoDbBar', 'compact');
+        syncDemoDbUrls(window.location.origin);
     </script>
 
 

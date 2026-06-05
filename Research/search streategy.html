@@ -281,6 +281,8 @@ body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text);
   </div>
 </header>
 
+<div style="padding:0 20px 0"><div id="demoDbBar" data-variant="compact"></div></div>
+
 <div class="main">
   <div class="section-title">Concept Groups <span class="count" id="groupCount">0</span></div>
   <div id="groupList"></div>
@@ -1119,6 +1121,11 @@ function exportPDF(){
     doc.save('Search_Strategy_Report.pdf');toast('PDF downloaded!');
   }catch(err){toast('PDF error: '+err.message);}
 }
+</script>
+<script src="../demo-links.js"></script>
+<script>
+  mountDemoDbBar('#demoDbBar', 'compact');
+  syncDemoDbUrls(window.location.origin);
 </script>
 </body>
 </html>
